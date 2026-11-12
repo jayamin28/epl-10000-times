@@ -1,0 +1,11 @@
+gameweek,kickoff_time,home_team,home_score,away_score,away_team,finished,match_id
+8,2026-10-25T14:00:00,1.0,0.0,3.0,91.0,True,26-27-prem-manchester-united-vs-afc-bournemouth
+8,2026-10-23T19:00:00,40.0,1.0,1.0,17.0,True,26-27-prem-ipswich-town-vs-nottingham-forest
+8,2026-10-25T14:00:00,14.0,2.0,0.0,36.0,True,26-27-prem-liverpool-vs-brighton-hove-albion
+8,2026-10-24T16:30:00,8.0,0.0,2.0,6.0,True,26-27-prem-chelsea-vs-tottenham-hotspur
+8,2026-10-25T14:00:00,31.0,0.0,2.0,4.0,True,26-27-prem-crystal-palace-vs-newcastle-united
+8,2026-10-24T14:00:00,9.0,0.0,1.0,54.0,True,26-27-prem-coventry-city-vs-fulham
+8,2026-10-25T14:00:00,88.0,1.0,1.0,94.0,True,26-27-prem-hull-city-vs-brentford
+8,2026-10-24T14:00:00,3.0,2.0,0.0,11.0,True,26-27-prem-arsenal-vs-everton
+8,2026-10-25T16:30:00,56.0,0.0,0.0,2.0,True,26-27-prem-sunderland-vs-leeds-united
+8,2026-10-24T11:30:00,7.0,2.0,1.0,43.0,True,26-27-prem-aston-villa-vs-manchester-city

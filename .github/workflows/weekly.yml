@@ -1,0 +1,84 @@
+name: weekly
+
+# Every morning: fetch results, check them, and if a new result has arrived,
+# simulate 10,000 seasons and publish the page. A failed check stops the run,
+# leaves the last good page up, and GitHub emails the repository owner.
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # 07:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Run even if no new result has arrived"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "site/index.html"
+      - "requirements.txt"
+      - ".github/workflows/weekly.yml"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: weekly
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      PYTHONPATH: src
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Tests
+        run: python -m pytest
+
+      - name: Fetch, check, simulate
+        id: week
+        run: python -m eplsim.run_week ${{ (inputs.force || github.event_name == 'push') && '--force' || '' }}
+
+      - name: Save the run
+        if: steps.week.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/current outputs site/feed.json
+          if git diff --cached --quiet; then
+            echo "Nothing to save"
+          else
+            git commit -m "Matchweek ${{ steps.week.outputs.matchweek }}: ${{ steps.week.outputs.played }} results, 10,000 seasons"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v6
+        if: steps.week.outputs.changed == 'true'
+
+      - uses: actions/upload-pages-artifact@v5
+        if: steps.week.outputs.changed == 'true'
+        with:
+          path: site
+
+      - id: deploy
+        if: steps.week.outputs.changed == 'true'
+        uses: actions/deploy-pages@v5

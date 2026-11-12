@@ -1,0 +1,8 @@
+gameweek,kickoff_time,home_team,home_score,away_score,away_team,finished,match_id
+34.0,2026-04-27T19:00:00+00:00,1.0,2.0,1.0,94.0,True,25-26-prem-manchester-united-vs-brentford
+34.0,2026-04-25T14:00:00+00:00,21.0,2.0,1.0,11.0,True,25-26-prem-west-ham-united-vs-everton
+34.0,2026-04-25T16:30:00+00:00,3.0,1.0,0.0,4.0,True,25-26-prem-arsenal-vs-newcastle-united
+34.0,2026-04-24T19:00:00+00:00,56.0,0.0,5.0,17.0,True,25-26-prem-sunderland-vs-nottingham-forest
+34.0,2026-04-25T14:00:00+00:00,39.0,0.0,1.0,6.0,True,25-26-prem-wolverhampton-wanderers-vs-tottenham-hotspur
+34.0,2026-04-25T11:30:00+00:00,54.0,1.0,0.0,7.0,True,25-26-prem-fulham-vs-aston-villa
+34.0,2026-04-25T14:00:00+00:00,14.0,3.0,1.0,31.0,True,25-26-prem-liverpool-vs-crystal-palace

@@ -1,0 +1,14 @@
+gameweek,kickoff_time,home_team,home_score,away_score,away_team,finished,match_id
+33.0,2026-04-19T15:30:00+00:00,43.0,2.0,1.0,3.0,True,25-26-prem-manchester-city-vs-arsenal
+33.0,2026-04-22T19:00:00+00:00,91.0,2.0,2.0,2.0,True,25-26-prem-afc-bournemouth-vs-leeds-united
+33.0,2026-04-18T11:30:00+00:00,94.0,0.0,0.0,54.0,True,25-26-prem-brentford-vs-fulham
+33.0,2026-04-19T13:00:00+00:00,11.0,1.0,2.0,14.0,True,25-26-prem-everton-vs-liverpool
+33.0,2026-04-20T19:00:00+00:00,31.0,0.0,0.0,21.0,True,25-26-prem-crystal-palace-vs-west-ham-united
+33.0,2026-04-19T13:00:00+00:00,7.0,4.0,3.0,56.0,True,25-26-prem-aston-villa-vs-sunderland
+33.0,2026-04-18T19:00:00+00:00,8.0,0.0,1.0,1.0,True,25-26-prem-chelsea-vs-manchester-united
+33.0,2026-04-18T16:30:00+00:00,6.0,2.0,2.0,36.0,True,25-26-prem-tottenham-hotspur-vs-brighton-hove-albion
+33.0,2026-04-18T14:00:00+00:00,2.0,3.0,0.0,39.0,True,25-26-prem-leeds-united-vs-wolverhampton-wanderers
+33.0,2026-04-22T19:00:00+00:00,90.0,0.0,1.0,43.0,True,25-26-prem-burnley-vs-manchester-city
+33.0,2026-04-19T13:00:00+00:00,17.0,4.0,1.0,90.0,True,25-26-prem-nottingham-forest-vs-burnley
+33.0,2026-04-21T19:00:00+00:00,36.0,3.0,0.0,8.0,True,25-26-prem-brighton-hove-albion-vs-chelsea
+33.0,2026-04-18T14:00:00+00:00,4.0,1.0,2.0,91.0,True,25-26-prem-newcastle-united-vs-afc-bournemouth

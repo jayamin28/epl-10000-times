@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>The Premier League, 10,000 times</title>
+<meta name="description" content="The rest of the Premier League season, simulated 10,000 times after every matchweek. Title, top four and relegation odds for all 20 clubs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #FEFDFB; --ink: #231F1B; --muted: #6A6158; --card: #F8F6F1; --line: #E8E3D8;
+  --olive: #5C6A36; --olive-deep: #3F4A22; --olive-tint: #EBEEDF; --neutral-chip: #EFECE5;
+  --serif: Fraunces, Georgia, "Times New Roman", serif;
+  --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.5; }
+main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; display: flex; flex-direction: column; gap: 56px; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; margin: 0; line-height: 1.15; }
+h1 { font-size: clamp(34px, 6vw, 56px); }
+h2 { font-size: clamp(26px, 4vw, 36px); }
+h3 { font-size: 20px; font-family: var(--sans); letter-spacing: 0; }
+p { margin: 0; }
+a { color: var(--olive-deep); text-underline-offset: 3px; }
+.muted { color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 15px; }
+.tag { display: inline-block; border: 1px solid var(--olive); color: var(--olive-deep); border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600; }
+.lede { font-size: clamp(18px, 2.4vw, 21px); color: var(--muted); max-width: 46em; }
+section { display: flex; flex-direction: column; gap: 18px; }
+.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.why { color: var(--muted); max-width: 46em; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.tile { display: flex; flex-direction: column; gap: 4px; }
+.tile .label { color: var(--muted); font-size: 15px; }
+.tile .value { font-family: var(--serif); font-weight: 600; font-size: 40px; line-height: 1.1; }
+.tile .note { color: var(--muted); font-size: 14px; }
+.hero-num { font-family: var(--serif); font-weight: 600; font-size: clamp(64px, 13vw, 128px); line-height: 0.95; letter-spacing: -0.02em; color: var(--olive); white-space: nowrap; }
+.hero-row { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.hero-row p { font-size: clamp(18px, 2.4vw, 22px); max-width: 22em; padding-bottom: 8px; }
+
+/* club badge: a disc in the club's colours with its three-letter code. Not a crest. */
+.badge { flex: none; border-radius: 999px; border: 1px solid var(--line); padding: 2px; display: inline-flex; }
+.badge i { flex: 1; border-radius: 999px; border-style: solid; display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 600; letter-spacing: 0.04em; }
+.badge.s { width: 22px; height: 22px; } .badge.s i { border-width: 3px; }
+.badge.l { width: 76px; height: 76px; padding: 4px; } .badge.l i { border-width: 4px; font-size: 20px; }
+.clubline { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+
+.picker { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+select, input[type=number], button { font: inherit; color: var(--ink); background: #fff; border: 1px solid #CFC8B8; border-radius: 10px; padding: 9px 12px; min-height: 44px; }
+button { cursor: pointer; background: var(--olive); color: #fff; border-color: var(--olive); font-weight: 600; }
+button.ghost { background: #fff; color: var(--ink); border-color: #CFC8B8; font-weight: 500; }
+select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--olive); outline-offset: 2px; }
+
+.club-head { display: flex; align-items: center; gap: 16px; }
+.club-head .sub { color: var(--muted); }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 180px; border-bottom: 1px solid #D8D1C2; }
+.bars > div { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; height: 100%; }
+.bars .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 1px; }
+.bars .lab { font-size: 13px; font-weight: 500; white-space: nowrap; }
+.axis { display: flex; gap: 2px; font-size: 12px; color: var(--muted); }
+.axis > div { flex: 1 1 0; min-width: 0; text-align: center; }
+.chips { display: flex; gap: 10px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 9px 14px; font-weight: 500; }
+.chip.up { background: var(--olive); color: #fff; }
+.chip.flat { background: var(--neutral-chip); color: var(--ink); }
+.chip.down { background: #fff; color: var(--ink); border: 1px solid #CFC8B8; }
+.chip svg { flex: none; }
+
+/* heatmap */
+.matrix { display: flex; flex-direction: column; gap: 3px; }
+.mrow { display: grid; grid-template-columns: 64px minmax(0, 1fr) 40px; align-items: center; gap: 8px; border-radius: 6px; }
+.mrow.mine { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mrow.mine .code { font-weight: 700; }
+.mrow .code { font-weight: 500; font-size: 14px; letter-spacing: 0.02em; }
+.cells { display: grid; grid-template-columns: repeat(4, 1fr) 4px repeat(13, 1fr) 4px repeat(3, 1fr); gap: 1px; height: 26px; }
+.cells > b { border-radius: 2px; display: block; }
+.cells > b:hover { outline: 2px solid var(--ink); outline-offset: 0; }
+.mhead .cells { height: auto; font-size: 12px; color: var(--muted); text-align: center; }
+.mhead .cells > span { min-width: 0; }
+.mrow .pts { text-align: right; font-weight: 500; font-size: 14px; }
+.bands { display: grid; grid-template-columns: 64px minmax(0, 1fr) 40px; gap: 8px; font-size: 13px; }
+.bands .cells { height: auto; }
+.bands .t4 { grid-column: 1 / 5; border-bottom: 2px solid var(--olive); padding-bottom: 2px; white-space: nowrap; }
+.bands .dn { grid-column: 20 / 23; border-bottom: 2px solid var(--ink); padding-bottom: 2px; text-align: right; white-space: nowrap; }
+.legend { display: flex; align-items: flex-start; gap: 2px; font-size: 12px; color: var(--muted); }
+.legend div { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.legend b { width: 44px; height: 14px; border-radius: 2px; display: block; }
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: #fff; border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.35; max-width: 240px; display: none; }
+
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 15px; }
+th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 600; color: var(--muted); font-size: 13px; }
+th:first-child, td:first-child { text-align: left; }
+tr.mine td { background: var(--olive-tint); }
+td .pbar { display: inline-block; vertical-align: middle; width: 54px; height: 6px; background: var(--line); border-radius: 3px; margin-right: 8px; overflow: hidden; }
+td .pbar i { display: block; height: 100%; background: var(--olive); border-radius: 3px; }
+.fix { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.4fr) auto; gap: 6px 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.fix .teams { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.wdl { display: flex; gap: 2px; height: 12px; }
+.wdl i { display: block; border-radius: 3px; min-width: 2px; }
+.wdl .h { background: var(--olive); } .wdl .d { background: #CFC8B8; } .wdl .a { background: var(--ink); }
+.fix .odds { font-size: 14px; color: var(--muted); text-align: right; }
+.key { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.key span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--sw); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.list { display: flex; flex-direction: column; }
+.list > div { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.list > div:last-child { border-bottom: 0; }
+.small { font-size: 14px; }
+footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding-top: 24px; }
+.hidden { display: none !important; }
+@media (max-width: 560px) {
+  body { font-size: 16px; }
+  .mrow, .bands { grid-template-columns: 44px minmax(0, 1fr) 30px; gap: 5px; }
+  .mrow .badge { display: none; }
+  .cells { height: 22px; }
+  .fix { grid-template-columns: 1fr; }
+  .fix .odds { text-align: left; }
+  .bars .lab { display: none; }
+  .bars .lab.top1 { display: inline; font-size: 12px; }
+}
+</style>
+</head>
+<body data-preview="true">
+<main id="app">
+  <header style="display:flex;flex-direction:column;gap:14px">
+    <div class="topline"><span id="stamp">Loading the latest run</span><span class="tag hidden" id="preview">Preview. Launching Sat 14 Nov</span></div>
+    <h1>The Premier League, 10,000 times</h1>
+    <p class="lede" id="lede">After every matchweek I play out the rest of the season 10,000 times and count what happens.</p>
+  </header>
+  <noscript><p class="card">This page needs JavaScript to load the latest numbers.</p></noscript>
+  <p class="card hidden" id="error"></p>
+
+  <div id="content" class="hidden" style="display:flex;flex-direction:column;gap:56px">
+
+  <section aria-labelledby="h-big">
+    <div class="sec-head"><h2 id="h-big">The big picture</h2><p class="why" id="big-why"></p></div>
+    <div class="hero-row"><div class="hero-num num" id="hero-num"></div><p id="hero-text"></p></div>
+    <div class="tiles" id="big-tiles"></div>
+  </section>
+
+  <section aria-labelledby="h-club">
+    <div class="sec-head"><h2 id="h-club">Your club</h2>
+      <div class="picker"><label for="pick" class="muted">Pick a club</label><select id="pick"></select><span class="muted small" id="bias"></span></div></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:20px">
+      <div class="club-head" id="club-head"></div>
+      <div class="hero-row"><div class="hero-num num" id="club-num" style="font-size:clamp(56px,11vw,104px)"></div><p id="club-text"></p></div>
+      <div class="tiles" id="club-tiles"></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h3 id="club-chart-title"></h3>
+        <div class="bars" id="club-bars" role="img"></div>
+        <div class="axis" id="club-axis" aria-hidden="true"></div>
+        <p class="muted small">Final league place, 1st to 20th. Height is the share of the 10,000 seasons that ended there.</p>
+      </div>
+      <div id="club-next" style="display:flex;flex-direction:column;gap:10px"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-matrix">
+    <div class="sec-head"><h2 id="h-matrix">Where every club finishes</h2>
+      <p class="why">Each row is a club, each column a final place. Darker means it happened in more seasons. A club with one dark square is settled. A long pale smear means nobody knows yet.</p></div>
+    <div>
+      <div class="bands" aria-hidden="true"><span></span><div class="cells"><span class="t4">Top four</span><span class="dn">Down</span></div><span></span></div>
+      <div class="mrow mhead" aria-hidden="true"><span></span><div class="cells" id="mticks"></div><span class="pts muted" style="font-weight:400;font-size:12px">Pts</span></div>
+      <div class="matrix" id="matrix" role="img"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end">
+      <div><div class="muted small" style="margin-bottom:4px">Share of seasons finishing in that place</div><div class="legend" id="legend"></div></div>
+      <p class="muted small">Pts is the average final points total. Hover or tap a square for the number. The table below has every figure.</p>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-races">
+    <div class="sec-head"><h2 id="h-races">The four races</h2>
+      <p class="why">Share of the 10,000 seasons in which each club won the title, finished in the top four, finished in the top five, or went down. Top five is shown because England may earn a fifth Champions League place.</p></div>
+    <div class="scroll"><table id="races"><thead><tr><th scope="col">Club</th><th scope="col">Now</th><th scope="col">Pts now</th><th scope="col">Avg final pts</th><th scope="col">Title</th><th scope="col">Top 4</th><th scope="col">Top 5</th><th scope="col">Down</th></tr></thead><tbody></tbody></table></div>
+    <p class="muted small" id="races-note"></p>
+  </section>
+
+  <section aria-labelledby="h-movers" id="sec-movers" class="hidden">
+    <div class="sec-head"><h2 id="h-movers">Who moved this week</h2><p class="why" id="movers-why"></p></div>
+    <div class="card list" id="movers"></div>
+  </section>
+
+  <section aria-labelledby="h-next">
+    <div class="sec-head"><h2 id="h-next"></h2><p class="why" id="next-why"></p></div>
+    <div class="card" id="swing-card"></div>
+    <div>
+      <div class="key" aria-hidden="true"><span style="--sw:var(--olive)">Home win</span><span style="--sw:#CFC8B8">Draw</span><span style="--sw:var(--ink)">Away win</span></div>
+      <div id="fixtures"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-lies">
+    <div class="sec-head"><h2 id="h-lies">Where the table lies</h2>
+      <p class="why">The table shows points already won. The model ranks clubs by where they are likely to end up. A big gap usually means a strong side had a bad start, or a weak side had a kind one.</p></div>
+    <div class="two"><div class="card"><h3>Better than their place</h3><div class="list" id="lies-up"></div></div><div class="card"><h3>Worse than their place</h3><div class="list" id="lies-down"></div></div></div>
+  </section>
+
+  <section aria-labelledby="h-magic">
+    <div class="sec-head"><h2 id="h-magic">How many points it takes</h2>
+      <p class="why">The points total of whoever finished in that place, counted across all 10,000 seasons. The big number is the most common total. The range covers the middle 80% of seasons.</p></div>
+    <div class="tiles" id="magic"></div>
+  </section>
+
+  <section aria-labelledby="h-uni">
+    <div class="sec-head"><h2 id="h-uni">Open one of the 10,000 seasons</h2>
+      <p class="why">Every simulated season has a number. Pick one and see how it ended. Same number, same season, every time, until the next matchweek changes the data.</p></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:14px">
+      <form class="picker" id="uni-form"><label for="uni-n">Season</label><input id="uni-n" type="number" min="1" max="10000" value="2026" inputmode="numeric" style="width:120px"><button type="submit">Open</button><button type="button" class="ghost" id="uni-rand">Surprise me</button></form>
+      <div id="uni-out" aria-live="polite"></div>
+    </div>
+    <div class="card" id="wild"></div>
+  </section>
+
+  <section aria-labelledby="h-runin">
+    <div class="sec-head"><h2 id="h-runin">Who has the hardest run-in</h2>
+      <p class="why">Average rating of the opponents still to play, with away games counted as harder and home games as easier. Higher is harder.</p></div>
+    <div class="two"><div class="card"><h3>Hardest</h3><div class="list" id="run-hard"></div></div><div class="card"><h3>Easiest</h3><div class="list" id="run-easy"></div></div></div>
+  </section>
+
+  <section aria-labelledby="h-how">
+    <div class="sec-head"><h2 id="h-how">How this works, and where it is weak</h2></div>
+    <div class="two">
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Method</h3>
+        <p>1. Every club gets a strength rating, updated after every league match since 2010.</p>
+        <p>2. The rating gap between two clubs sets how many goals each is expected to score. Home advantage is included.</p>
+        <p>3. Every remaining match is played with random goals around those expectations. That gives one possible season.</p>
+        <p>4. Repeat 10,000 times, apply the real league rules for ties, and count.</p>
+        <p class="muted small" id="method-note"></p>
+      </div>
+      <div class="card" style="display:flex;flex-direction:column;gap:10px">
+        <h3>Limits</h3>
+        <p>It knows results only. It does not know about injuries, transfers, managers or fixture congestion.</p>
+        <p>It predicts slightly fewer goals than are really scored.</p>
+        <p>Two runs on the same data differ by about 1 point. A change under 3 points is noise, not news.</p>
+        <p>I support Liverpool. The model does not know that.</p>
+        <p class="muted small">Analysis for fun. Not betting advice.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;flex-direction:column;gap:10px">
+      <h3>Checks on this run</h3>
+      <div class="list small" id="gates"></div>
+      <p class="muted small" id="run-meta"></p>
+    </div>
+  </section>
+
+  <footer>
+    <p>Data: <a href="https://github.com/openfootball/football.json">openfootball</a> (public domain), the official Fantasy Premier League fixtures feed, and <a href="https://github.com/olbauday/FPL-Elo-Insights">FPL-Elo-Insights</a>. Each result is accepted only when the sources agree. Inspired by <a href="https://www.youtube.com/watch?v=JSAjJsbysVk">Bink Sport's 10,000 simulations video</a>.</p>
+    <p>Club discs use approximate club colours and three-letter codes. They are not official crests. This page is not affiliated with the Premier League or any club.</p>
+    <p>Code, data and tests: <a href="https://github.com/jayamin28/epl-10000-times">github.com/jayamin28/epl-10000-times</a>.</p>
+  </footer>
+  </div>
+</main>
+<div id="tip" role="presentation"></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (id) { return document.getElementById(id); };
+  var HEAT_LO = [243, 241, 234], HEAT_HI = [58, 74, 22];
+  var RACE_WORDS = { title: "win the title", top4: "finish in the top four", top5: "finish in the top five", relegated: "go down" };
+  var RACE_SHORT = { title: "title", top4: "top four", top5: "top five", relegated: "relegation" };
+  var feed, byTeam = {}, maxCell = 1;
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function pct(p) {
+    if (p <= 0) return "0%";
+    if (p < 0.001) return "<0.1%";
+    if (p < 0.01) return (p * 100).toFixed(1) + "%";
+    if (p > 0.999 && p < 1) return ">99.9%";
+    if (p > 0.99 && p < 1) return (p * 100).toFixed(1) + "%";
+    return Math.round(p * 100) + "%";
+  }
+  function oneIn(p) {
+    if (p <= 0) return "0 in 10,000";
+    if (p >= 0.2) return Math.round(p * 100) + " in 100";
+    var n = Math.round(1 / p);
+    return "1 in " + n.toLocaleString("en-GB");
+  }
+  function count(p, n) { return Math.round(p * n).toLocaleString("en-GB"); }
+  function seasons(p, n) { var k = Math.round(p * n); return k.toLocaleString("en-GB") + (k === 1 ? " season" : " seasons"); }
+  function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+  function date(iso, withDay) {
+    var d = new Date(iso.slice(0, 10) + "T12:00:00Z");
+    return d.toLocaleDateString("en-GB", withDay ? { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" } : { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  }
+  function lum(hex) {
+    var c = [1, 3, 5].map(function (i) { var v = parseInt(hex.substr(i, 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function badge(team, size) {
+    var c = byTeam[team];
+    var text = size === "l" ? '<span style="color:' + (lum(c.primary) > 0.5 ? "#231F1B" : "#fff") + '">' + esc(c.code) + "</span>" : "";
+    return '<span class="badge ' + size + '" style="background:' + c.primary + '" aria-hidden="true"><i style="border-color:' + c.secondary + '">' + text + "</i></span>";
+  }
+  function club(team) { return '<span class="clubline">' + badge(team, "s") + "<span>" + esc(team) + "</span></span>"; }
+  function mark(team) { var c = byTeam[team]; return lum(c.primary) > 0.6 ? (lum(c.secondary) > 0.6 ? "#231F1B" : c.secondary) : c.primary; }
+  function shade(p) {
+    var t = Math.sqrt(Math.min(1, p / maxCell));
+    return "rgb(" + HEAT_LO.map(function (lo, i) { return Math.round(lo + (HEAT_HI[i] - lo) * t); }).join(",") + ")";
+  }
+  function tile(label, value, note) { return '<div class="card tile"><div class="label">' + label + '</div><div class="value num">' + value + '</div><div class="note">' + note + "</div></div>"; }
+  function arrow(dir) {
+    var d = dir === "up" ? "M12 19V5M5 12l7-7 7 7" : dir === "down" ? "M12 5v14M19 12l-7 7-7-7" : "M5 12h14";
+    return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>';
+  }
+
+  function renderBig() {
+    var m = feed.meta, fav = feed.clubs.slice().sort(function (a, b) { return b.title - a.title; });
+    var a = fav[0], b = fav[1];
+    $("stamp").textContent = "After matchweek " + m.matchweek + ". Results to " + date(m.data_through) + ". " + m.matches_remaining + " matches still to play.";
+    $("big-why").textContent = m.matches_played + " matches are in the book and stay fixed. The other " + m.matches_remaining + " were played " + m.n_sims.toLocaleString("en-GB") + " times.";
+    $("hero-num").textContent = oneIn(a.title);
+    $("hero-text").innerHTML = "<strong>" + esc(a.team) + "</strong> won the title in " + count(a.title, m.n_sims) + " of " + m.n_sims.toLocaleString("en-GB") + " seasons. " + esc(b.team) + " are next on " + pct(b.title) + ".";
+    var down = feed.clubs.slice().sort(function (x, y) { return y.relegated - x.relegated; })[0];
+    var race = feed.clubs.filter(function (c) { return c.top4 >= 0.02 && c.top4 < 0.85; }).length;
+    $("big-tiles").innerHTML =
+      tile("Clubs still in the title race", feed.tiers.title.locked_in.length + feed.tiers.title.in_the_race.length + feed.tiers.title.on_the_edge.length, "A title chance of 2% or more") +
+      tile("Clubs fighting for the top four", race, "Between 2% and 85%. Nobody is safe or out") +
+      tile("Most likely to go down", esc(down.code), esc(down.team) + ", in " + pct(down.relegated) + " of seasons");
+  }
+
+  function renderPicker() {
+    var sel = $("pick"), saved = null;
+    try { saved = localStorage.getItem("epl10k-club"); } catch (e) {}
+    feed.clubs.map(function (c) { return c.team; }).sort().forEach(function (t) {
+      var o = document.createElement("option"); o.value = t; o.textContent = t; sel.appendChild(o);
+    });
+    sel.value = byTeam[saved] ? saved : "Liverpool";
+    sel.addEventListener("change", function () { try { localStorage.setItem("epl10k-club", sel.value); } catch (e) {} renderClub(); });
+  }
+
+  function renderClub() {
+    var team = $("pick").value, c = byTeam[team], n = feed.meta.n_sims;
+    var row = feed.matrix.probs[feed.matrix.teams.indexOf(team)];
+    var strongest = feed.clubs.slice().sort(function (a, b) { return b.elo - a.elo; }).map(function (x) { return x.team; }).indexOf(team) + 1;
+    $("bias").textContent = team === "Liverpool" ? "My club, so it opens first. The numbers do not know that." : "";
+    $("club-head").innerHTML = badge(team, "l") + '<div><h3 style="font-family:var(--serif);font-size:clamp(28px,5vw,40px);letter-spacing:-0.01em">' + esc(team) + '</h3><div class="sub">' + ordinal(c.table_pos) + " in the table on " + c.pts_now + " points. " + ordinal(strongest) + " strongest by rating.</div></div>";
+    var main = c.title >= 0.02 ? "title" : (c.top4 >= 0.05 ? "top4" : (c.relegated >= 0.05 ? "relegated" : (c.top4 >= c.relegated ? "top4" : "relegated")));
+    $("club-num").textContent = oneIn(c[main]);
+    $("club-text").textContent = (main === "title" ? "Champions" : main === "top4" ? "Top four" : "Relegated") + " in " + count(c[main], n) + " of " + n.toLocaleString("en-GB") + " simulated seasons." + (team === "Liverpool" ? " I support them, so I checked twice." : "");
+    var best = c.most_likely_place;
+    var all = {
+      title: tile("Title", pct(c.title), seasons(c.title, n)),
+      top4: tile("Top four", pct(c.top4), "Top five: " + pct(c.top5)),
+      pts: tile("Average final points", Math.round(c.exp_pts), "Usually " + c.pts_p10 + " to " + c.pts_p90),
+      place: tile("Most likely finish", ordinal(best), pct(row[best - 1]) + " of seasons"),
+      relegated: tile("Relegated", pct(c.relegated), seasons(c.relegated, n))
+    };
+    $("club-tiles").innerHTML = ["title", "top4", "pts", "place", "relegated"].filter(function (k) { return k !== main; }).map(function (k) { return all[k]; }).join("");
+    var max = Math.max.apply(null, row), colour = mark(team), top = row.map(function (v, i) { return [v, i]; }).sort(function (a, b) { return b[0] - a[0]; }).slice(0, 4).map(function (x) { return x[1]; });
+    $("club-chart-title").textContent = "Where " + team + " finish";
+    $("club-bars").setAttribute("aria-label", "Bar chart of " + team + "'s final place. Most likely " + ordinal(best) + ", in " + pct(row[best - 1]) + " of seasons. Top four in " + pct(c.top4) + ". Full figures are in the table further down.");
+    $("club-bars").innerHTML = row.map(function (v, i) {
+      return '<div data-tip="' + ordinal(i + 1) + ": " + pct(v) + " of seasons (" + count(v, n) + ')">' + (top.indexOf(i) >= 0 && v > 0.005 ? '<span class="lab num' + (i === top[0] ? " top1" : "") + '">' + pct(v) + "</span>" : "") + '<div class="bar" style="height:' + (v / max * 82).toFixed(1) + "%;background:" + colour + '"></div></div>';
+    }).join("");
+    $("club-axis").innerHTML = row.map(function (_, i) { return "<div>" + ((i + 1) % 2 || i === 19 ? (i === 19 ? 20 : i + 1) : "") + "</div>"; }).join("");
+    var fx = feed.swings.fixtures.filter(function (f) { return f.home === team || f.away === team; })[0];
+    if (!fx) { $("club-next").innerHTML = ""; }
+    else {
+      var races = fx.clubs[team], key = Object.keys(races).sort(function (a, b) { return Math.abs(races[b].swing) - Math.abs(races[a].swing); })[0], r = races[key];
+      var opp = fx.home === team ? fx.away : fx.home, good = key === "relegated" ? "down" : "up", bad = key === "relegated" ? "up" : "down";
+      var word = key === "relegated" ? "relegated in " : RACE_SHORT[key] + " in ";
+      $("club-next").innerHTML = "<h3>Next: " + esc(opp) + (fx.home === team ? " at home, " : " away, ") + date(fx.date, true) + '</h3><div class="chips">' +
+        '<span class="chip up">' + arrow(good) + "Win: " + word + pct(r.win) + "</span>" +
+        '<span class="chip flat">' + arrow("flat") + "Draw: " + pct(r.draw) + "</span>" +
+        '<span class="chip down">' + arrow(bad) + "Lose: " + pct(r.lose) + "</span></div>" +
+        '<p class="muted small">Each figure is a full rerun of the 10,000 seasons with only this result fixed.</p>';
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("[data-team]"), function (el) { el.classList.toggle("mine", el.getAttribute("data-team") === team); });
+  }
+
+  function gapCells(html) { return html.slice(0, 4).join("") + "<span></span>" + html.slice(4, 17).join("") + "<span></span>" + html.slice(17).join(""); }
+
+  function renderMatrix() {
+    var n = feed.meta.n_sims;
+    maxCell = Math.max.apply(null, feed.matrix.probs.map(function (r) { return Math.max.apply(null, r); }));
+    var labels = { 0: "1", 3: "4", 9: "10", 16: "17", 19: "20" };
+    $("mticks").innerHTML = gapCells(feed.matrix.teams.map(function (_, j) { return "<span>" + (labels[j] || "") + "</span>"; }));
+    $("matrix").innerHTML = feed.matrix.teams.map(function (t, i) {
+      var c = byTeam[t];
+      var cells = feed.matrix.probs[i].map(function (p, j) { return '<b style="background:' + shade(p) + '" data-tip="' + esc(t) + " finish " + ordinal(j + 1) + " in " + pct(p) + " of seasons (" + count(p, n) + ')"></b>'; });
+      return '<div class="mrow" data-team="' + esc(t) + '"><span class="clubline">' + badge(t, "s") + '<span class="code">' + esc(c.code) + '</span></span><div class="cells">' + gapCells(cells) + '</div><span class="pts num">' + Math.round(c.exp_pts) + "</span></div>";
+    }).join("");
+    var a = feed.clubs[0], z = feed.clubs[feed.clubs.length - 1];
+    $("matrix").setAttribute("aria-label", "Heatmap of each club's chance of finishing in each league place. " + a.team + " finish first in " + pct(a.title) + " of seasons. " + z.team + " go down in " + pct(z.relegated) + ". Every figure is in the table below.");
+    $("legend").innerHTML = [0, 0.04, 0.16, 0.36, 0.64].map(function (f) { var p = f * maxCell; return '<div><b style="background:' + shade(p) + '"></b><span>' + Math.round(p * 100) + "%</span></div>"; }).join("");
+  }
+
+  function renderRaces() {
+    function cell(p) { return '<td class="num"><span class="pbar" aria-hidden="true"><i style="width:' + (p * 100).toFixed(1) + '%"></i></span>' + pct(p) + "</td>"; }
+    $("races").querySelector("tbody").innerHTML = feed.clubs.map(function (c) {
+      return '<tr data-team="' + esc(c.team) + '"><td>' + club(c.team) + '</td><td class="num">' + ordinal(c.table_pos) + '</td><td class="num">' + c.pts_now + '</td><td class="num">' + c.exp_pts.toFixed(1) + "</td>" + cell(c.title) + cell(c.top4) + cell(c.top5) + cell(c.relegated) + "</tr>";
+    }).join("");
+    var t = feed.meta.tiebreak;
+    $("races-note").textContent = "0% means it did not happen once in " + feed.meta.n_sims.toLocaleString("en-GB") + " seasons, not that it cannot. Clubs level on points, goal difference and goals scored were split by head to head, as the league's rules say: that was needed in " + t.seasons_with_clubs_fully_level + " seasons, and " + t.left_to_a_play_off + " of those would have gone to a play-off.";
+  }
+
+  function renderMovers() {
+    var m = feed.movers;
+    if (!m || !m.rows || !m.rows.length) return;
+    $("sec-movers").classList.remove("hidden");
+    $("movers-why").textContent = "Changes since matchweek " + m.since_matchweek + " of 3 points or more. Smaller moves are inside the dice noise and are not shown.";
+    $("movers").innerHTML = m.rows.slice(0, 8).map(function (r) {
+      var up = r.change > 0;
+      return "<div>" + club(r.team) + '<span class="num">' + RACE_SHORT[r.race] + ": " + pct(r.before) + " to " + pct(r.after) + " <strong>(" + (up ? "up " : "down ") + Math.abs(Math.round(r.change * 100)) + ")</strong></span></div>";
+    }).join("");
+  }
+
+  function renderNext() {
+    var nx = feed.next, b = feed.swings.biggest;
+    if (!nx.fixtures.length) { $("h-next").textContent = "The season is over"; return; }
+    $("h-next").textContent = "Matchweek " + nx.gameweek + ": the match that matters most";
+    $("next-why").textContent = "For every fixture I rerun the 10,000 seasons three times: home win, draw, away win. The match with the biggest gap between winning and losing is the one that moves the season most.";
+    var gain = b.race === "relegated" ? "cuts their relegation chance from " + pct(b.lose) + " to " + pct(b.win) : "lifts their " + RACE_SHORT[b.race] + " chance from " + pct(b.lose) + " to " + pct(b.win);
+    $("swing-card").innerHTML = '<div style="display:flex;flex-direction:column;gap:8px"><div class="muted small">Biggest swing of the week, ' + date(b.date, true) + "</div><h3>" + club(b.team) + '<span class="muted" style="font-weight:400"> ' + (b.venue === "home" ? "v " : "at ") + esc(b.opponent) + "</span></h3><p>A win instead of a defeat " + gain + ". That is a swing of <strong>" + Math.abs(Math.round(b.swing * 100)) + " points</strong> from one match.</p></div>";
+    $("fixtures").innerHTML = nx.fixtures.map(function (f) {
+      var label = f.home + " win " + pct(f.home_win) + ", draw " + pct(f.draw) + ", " + f.away + " win " + pct(f.away_win);
+      return '<div class="fix"><div class="teams">' + club(f.home) + '<span class="muted">v</span>' + club(f.away) + '</div><div class="wdl" role="img" aria-label="' + esc(label) + '" data-tip="' + esc(label) + '"><i class="h" style="flex:' + f.home_win + '"></i><i class="d" style="flex:' + f.draw + '"></i><i class="a" style="flex:' + f.away_win + '"></i></div><div class="odds num">' + pct(f.home_win) + " · " + pct(f.draw) + " · " + pct(f.away_win) + "</div></div>";
+    }).join("");
+  }
+
+  function renderLies() {
+    function line(r) { return "<div>" + club(r.team) + '<span class="num muted">' + ordinal(r.table_pos) + " now, model says " + ordinal(r.model_pos) + "</span></div>"; }
+    var up = feed.table_lies.filter(function (r) { return r.gap > 0; }).slice(0, 4), down = feed.table_lies.filter(function (r) { return r.gap < 0; }).slice(0, 4);
+    $("lies-up").innerHTML = up.map(line).join("") || '<p class="muted">Nobody this week.</p>';
+    $("lies-down").innerHTML = down.map(line).join("") || '<p class="muted">Nobody this week.</p>';
+  }
+
+  function renderMagic() {
+    var m = feed.magic_numbers, names = { title: "To win the title", top4: "To finish fourth", top5: "To finish fifth", safety: "To stay up (17th)" };
+    $("magic").innerHTML = Object.keys(names).filter(function (k) { return m[k]; }).map(function (k) { return tile(names[k], m[k].mode, "Usually " + m[k].p10 + " to " + m[k].p90 + " points"); }).join("");
+  }
+
+  function openUniverse(n) {
+    var u = feed.universes, max = u.champion.length;
+    if (!(n >= 1 && n <= max) || Math.floor(n) !== n) { $("uni-out").innerHTML = '<p class="muted">Pick a whole number from 1 to ' + max.toLocaleString("en-GB") + ".</p>"; return; }
+    var champ = u.teams[u.champion.charCodeAt(n - 1) - 65];
+    var down = [0, 1, 2].map(function (k) { return u.teams[u.relegated.charCodeAt(3 * (n - 1) + k) - 65]; });
+    $("uni-out").innerHTML = '<div class="list"><div><span class="muted">Season ' + n.toLocaleString("en-GB") + ": champions</span><strong>" + club(champ) + '</strong></div><div><span class="muted">Relegated</span><span style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end">' + down.map(club).join("") + '</span></div><div><span class="muted">How often ' + esc(champ) + ' win it</span><span class="num">' + pct(byTeam[champ].title) + "</span></div></div>";
+  }
+
+  function renderUniverse() {
+    var max = feed.universes.champion.length, input = $("uni-n");
+    input.max = max;
+    $("uni-form").addEventListener("submit", function (e) { e.preventDefault(); openUniverse(Number(input.value)); });
+    $("uni-rand").addEventListener("click", function () { input.value = 1 + Math.floor(Math.random() * max); openUniverse(Number(input.value)); });
+    openUniverse(Math.min(Number(input.value), max));
+    var w = feed.wildest, r = w.rest_of_season;
+    $("wild").innerHTML = '<div style="display:flex;flex-direction:column;gap:8px"><div class="muted small">The strangest season of the ' + feed.meta.n_sims.toLocaleString("en-GB") + "</div><h3>" + club(w.champion) + '<span class="muted" style="font-weight:400"> win the league in season ' + w.season.toLocaleString("en-GB") + "</span></h3><p>" + esc(w.champion) + " are " + ordinal(w.champion_table_pos_now) + " today on " + w.champion_pts_now + " points. In this one season they went " + r.won + " wins, " + r.drawn + " draws and " + r.lost + " defeats the rest of the way, finished on " + w.champion_pts + " points and took the title by " + w.margin + ". It happened " + (w.title_seasons === 1 ? "once" : w.title_seasons + " times") + " in " + feed.meta.n_sims.toLocaleString("en-GB") + ".</p></div>";
+  }
+
+  function renderRunIn() {
+    function line(r) { return "<div>" + club(r.team) + '<span class="num muted">' + Math.round(r.difficulty) + " avg rating, " + r.home_games + " of " + r.games + " at home</span></div>"; }
+    var rows = feed.run_in.filter(function (r) { return r.difficulty !== null; });
+    $("run-hard").innerHTML = rows.slice(0, 4).map(line).join("");
+    $("run-easy").innerHTML = rows.slice(-4).reverse().map(line).join("");
+  }
+
+  function renderMeta() {
+    var m = feed.meta, names = {
+      fixture_list: "Fixture list is complete: 380 matches, 20 clubs",
+      sources_reachable: "At least two of three data sources answered",
+      no_stale_results: "No finished match is missing its result",
+      results_never_vanish: "No result has disappeared since the last run",
+      table_matches_official_positions: "Table order agrees with the official feed"
+    }, words = { pass: "Passed", skipped: "Not run", warn: "Warning", fail: "Failed" };
+    $("gates").innerHTML = m.gates.map(function (g) { return "<div><span>" + (names[g.gate] || g.gate) + '<br><span class="muted">' + esc(g.detail) + "</span></span><strong>" + words[g.status] + "</strong></div>"; }).join("");
+    var rc = m.reconciliation;
+    $("run-meta").textContent = "Run " + m.generated_at.replace("T", " ").replace("Z", " UTC") + ". " + m.n_sims.toLocaleString("en-GB") + " seasons, seed " + m.seed + ". Of " + m.matches_played + " results, " + rc.confirmed_by_two_or_more + " are confirmed by two or more sources and " + rc.single_source + " rest on one source so far. " + rc.overruled + " were overruled by a majority.";
+    $("method-note").textContent = "Each club's rating is also nudged up or down at random in every season (by about " + m.sigma + " rating points), because a rating is an estimate, not a fact. Without that the model is too sure of itself.";
+    if (document.body.getAttribute("data-preview") === "true") $("preview").classList.remove("hidden");
+  }
+
+  function tips() {
+    var tip = $("tip");
+    function show(e) {
+      var el = e.target.closest ? e.target.closest("[data-tip]") : null;
+      if (!el) { tip.style.display = "none"; return; }
+      tip.textContent = el.getAttribute("data-tip");
+      tip.style.display = "block";
+      var x = Math.min(window.innerWidth - tip.offsetWidth - 8, Math.max(8, e.clientX + 12));
+      var y = e.clientY - tip.offsetHeight - 12;
+      tip.style.left = x + "px"; tip.style.top = (y < 8 ? e.clientY + 16 : y) + "px";
+    }
+    document.addEventListener("pointermove", show);
+    document.addEventListener("pointerdown", show);
+    document.addEventListener("scroll", function () { tip.style.display = "none"; }, { passive: true });
+  }
+
+  fetch("feed.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(function (data) {
+    feed = data;
+    feed.clubs.forEach(function (c) { byTeam[c.team] = c; });
+    renderBig(); renderPicker(); renderMatrix(); renderRaces(); renderMovers(); renderNext(); renderLies(); renderMagic(); renderUniverse(); renderRunIn(); renderMeta(); renderClub(); tips();
+    $("content").classList.remove("hidden");
+  }).catch(function (e) {
+    $("stamp").textContent = "";
+    $("error").textContent = "The latest numbers could not be loaded (" + e.message + "). Try again in a minute.";
+    $("error").classList.remove("hidden");
+  });
+})();
+</script>
+</body>
+</html>

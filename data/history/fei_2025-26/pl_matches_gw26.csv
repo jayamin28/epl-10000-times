@@ -1,0 +1,12 @@
+gameweek,kickoff_time,home_team,home_score,away_score,away_team,finished,match_id
+26.0,2026-02-11T19:40:00+00:00,31.0,2.0,3.0,90.0,True,25-26-prem-crystal-palace-vs-burnley
+26.0,2026-02-10T19:30:00+00:00,8.0,2.0,2.0,2.0,True,25-26-prem-chelsea-vs-leeds-united
+26.0,2026-02-12T20:00:00+00:00,94.0,1.0,1.0,3.0,True,25-26-prem-brentford-vs-arsenal
+26.0,2026-02-11T19:30:00+00:00,17.0,0.0,0.0,39.0,True,25-26-prem-nottingham-forest-vs-wolverhampton-wanderers
+26.0,2026-02-10T19:30:00+00:00,6.0,1.0,2.0,4.0,True,25-26-prem-tottenham-hotspur-vs-newcastle-united
+26.0,2026-02-18T20:00:00+00:00,39.0,2.0,2.0,3.0,True,25-26-prem-wolverhampton-wanderers-vs-arsenal
+26.0,2026-02-10T19:30:00+00:00,11.0,1.0,2.0,91.0,True,25-26-prem-everton-vs-afc-bournemouth
+26.0,2026-02-11T20:15:00+00:00,56.0,0.0,1.0,14.0,True,25-26-prem-sunderland-vs-liverpool
+26.0,2026-02-10T20:15:00+00:00,21.0,1.0,1.0,1.0,True,25-26-prem-west-ham-united-vs-manchester-united
+26.0,2026-02-11T19:30:00+00:00,43.0,3.0,0.0,54.0,True,25-26-prem-manchester-city-vs-fulham
+26.0,2026-02-11T19:30:00+00:00,7.0,1.0,0.0,36.0,True,25-26-prem-aston-villa-vs-brighton-hove-albion

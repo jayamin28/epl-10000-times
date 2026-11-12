@@ -1,0 +1,21 @@
+code,id,name,short_name,position
+3,1,Arsenal,ARS,1
+7,2,Aston Villa,AVL,4
+90,3,Burnley,BUR,19
+91,4,Bournemouth,BOU,6
+94,5,Brentford,BRE,9
+36,6,Brighton,BHA,8
+8,7,Chelsea,CHE,10
+31,8,Crystal Palace,CRY,15
+11,9,Everton,EVE,13
+54,10,Fulham,FUL,11
+2,11,Leeds,LEE,14
+14,12,Liverpool,LIV,5
+43,13,Man City,MCI,2
+1,14,Man Utd,MUN,3
+4,15,Newcastle,NEW,12
+17,16,Nott'm Forest,NFO,16
+56,17,Sunderland,SUN,7
+6,18,Spurs,TOT,17
+21,19,West Ham,WHU,18
+39,20,Wolves,WOL,20

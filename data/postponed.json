@@ -1,0 +1,4 @@
+{
+  "note": "Fixtures known to be postponed, as [home, away]. They are exempt from the staleness gate.",
+  "fixtures": []
+}

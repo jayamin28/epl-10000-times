@@ -1,0 +1,11 @@
+gameweek,kickoff_time,home_team,home_score,away_score,away_team,finished,match_id
+19,2027-01-01T20:00:00,2.0,,,11.0,False,26-27-prem-leeds-united-vs-everton
+19,2027-01-02T15:00:00,3.0,,,40.0,False,26-27-prem-arsenal-vs-ipswich-town
+19,2027-01-03T14:00:00,8.0,,,4.0,False,26-27-prem-chelsea-vs-newcastle-united
+19,2027-01-02T15:00:00,94.0,,,31.0,False,26-27-prem-brentford-vs-crystal-palace
+19,2027-01-02T15:00:00,14.0,,,9.0,False,26-27-prem-liverpool-vs-coventry-city
+19,2027-01-02T15:00:00,17.0,,,54.0,False,26-27-prem-nottingham-forest-vs-fulham
+19,2027-01-02T15:00:00,56.0,,,88.0,False,26-27-prem-sunderland-vs-hull-city
+19,2027-01-02T12:30:00,36.0,,,1.0,False,26-27-prem-brighton-hove-albion-vs-manchester-united
+19,2027-01-02T17:30:00,91.0,,,7.0,False,26-27-prem-afc-bournemouth-vs-aston-villa
+19,2027-01-03T16:30:00,43.0,,,6.0,False,26-27-prem-manchester-city-vs-tottenham-hotspur
