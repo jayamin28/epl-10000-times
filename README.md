@@ -48,6 +48,10 @@ If a check fails, the last good page stays up.
 - It predicts slightly fewer goals than are really scored.
 - Two runs on the same data differ by about 1 percentage point. A change under 3 points is noise.
 
+## What went wrong
+
+The bugs, the wrong assumptions and the one bias I could not fix are in [`CHALLENGES.md`](CHALLENGES.md).
+
 ## Data and credits
 
 See [`data/NOTICE.md`](data/NOTICE.md). Sources: openfootball (public domain), the official Fantasy Premier League fixtures feed, and FPL-Elo-Insights.
