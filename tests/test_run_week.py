@@ -231,6 +231,11 @@ def test_command_line_reports_to_the_workflow(week, data_dir, frozen_dir, tmp_pa
             "--offline", "--sims", "300", "--today", "2026-11-11"]
     assert run_week.main(args) == 0
     assert gh.read_text() == "changed=true\nmatchweek=10\nplayed=100\n"
+    # the first run of a season fills in every earlier matchweek on its own
+    assert sorted(p.name for p in (tmp_path / "s" / "snapshots").iterdir()) == [f"mw{n:02d}.json" for n in range(1, 11)]
+    t = _strict((tmp_path / "s" / "history.json").read_text())
+    assert [w["reconstructed"] for w in t["matchweeks"]] == [True] * 9 + [False]
+    assert _strict((tmp_path / "s" / "feed.json").read_text())["movers"]["since_matchweek"] == 9
     assert run_week.main(args) == 0
     assert gh.read_text().endswith("changed=false\n")
     assert run_week.main(args + ["--today", "2026-12-25", "--force"]) == 2
@@ -276,3 +281,142 @@ def test_fixture_order_in_the_source_does_not_change_the_seasons(matches, snap):
     a = pipeline.run_sim(snap, n_sims=500, sigma=config.SIGMA, seed=config.SEED)
     b = pipeline.run_sim(other, n_sims=500, sigma=config.SIGMA, seed=config.SEED)
     assert np.array_equal(a.position, b.position)
+
+
+# ---- the season as a data model: one snapshot per matchweek, kept forever ----
+
+def test_every_run_leaves_a_snapshot_and_a_timeline(week, feed):
+    snap_file = week["site"] / "snapshots" / "mw10.json"
+    assert _strict(snap_file.read_text(encoding="utf-8")) == feed
+    t = _strict((week["site"] / "history.json").read_text(encoding="utf-8"))
+    assert t["matchweeks"] == [{"matchweek": 10, "matches_played": 100, "data_through": "2026-11-08", "reconstructed": False}]
+    assert len(t["clubs"]) == 20
+    for c in feed["clubs"]:
+        s = t["clubs"][c["team"]]
+        assert (s["table_pos"], s["pts_now"]) == ([c["table_pos"]], [c["pts_now"]])
+        assert s["title"][0] == pytest.approx(c["title"], abs=1e-4) and s["top4"][0] == pytest.approx(c["top4"], abs=1e-4)
+    assert sorted(t["clubs"][c["team"]]["model_pos"][0] for c in feed["clubs"]) == list(range(1, 21))
+
+
+def test_position_history_holds_every_club_and_place(week, feed):
+    d = pd.read_parquet(week["out"] / "position_dist.parquet")
+    assert len(d) == 400 and set(d["place"]) == set(range(1, 21))
+    assert d.groupby("team")["share"].sum().sub(1).abs().max() < 1e-9
+    title = d[d["place"] == 1].set_index("team")["share"]
+    for c in feed["clubs"]:
+        assert title[c["team"]] == pytest.approx(c["title"], abs=1e-4)
+
+
+@pytest.fixture(scope="module")
+def rebuilt(week, data_dir, frozen_dir):
+    base, _ = _rerun(week, data_dir, frozen_dir)
+    before = {f: (base / f).read_bytes() for f in ("site/feed.json", "outputs/run_meta.json", "outputs/forecast_log.parquet",
+                                                    "outputs/seasons_latest.parquet")}
+    out = run_week.run(data_dir, base / "outputs", base / "site", current_dir=frozen_dir, now=NOW, n_sims=SIMS, as_of=7, **QUIET)
+    return {"base": base, "before": before, "out": out}
+
+
+def test_rebuilding_a_matchweek_uses_only_results_up_to_it(rebuilt, matches):
+    meta = rebuilt["out"]["feed"]["meta"]
+    assert (meta["matchweek"], meta["matches_played"], meta["matches_remaining"]) == (7, 70, 310)
+    assert meta["reconstructed"] is True
+    last = max(m.date for m in matches if m.season == "2026-27" and m.played and m.gameweek <= 7)
+    assert meta["data_through"] == last
+    pts = {c["team"]: c["pts_now"] for c in rebuilt["out"]["feed"]["clubs"]}
+    from eplsim.data import league_table
+    table = league_table([m for m in matches if m.season == "2026-27" and m.gameweek <= 7])
+    assert pts == {r["team"]: r["pts"] for r in table}
+    assert rebuilt["out"]["feed"]["next"]["gameweek"] == 8
+
+
+def test_rebuilding_never_touches_the_live_page_or_the_forecast_log(rebuilt):
+    base = rebuilt["base"]
+    for f, content in rebuilt["before"].items():
+        assert (base / f).read_bytes() == content, f
+    assert (base / "site" / "snapshots" / "mw07.json").exists()
+    assert _strict((base / "site" / "snapshots" / "mw10.json").read_text())["meta"]["reconstructed"] is False
+
+
+def test_timeline_grows_by_one_matchweek_in_order(rebuilt, feed):
+    base = rebuilt["base"]
+    t = _strict((base / "site" / "history.json").read_text(encoding="utf-8"))
+    assert [(w["matchweek"], w["matches_played"], w["reconstructed"]) for w in t["matchweeks"]] == [(7, 70, True), (10, 100, False)]
+    for series in t["clubs"].values():
+        assert all(len(v) == 2 for v in series.values())
+    liv = t["clubs"]["Liverpool"]
+    assert liv["title"][1] == pytest.approx(next(c for c in feed["clubs"] if c["team"] == "Liverpool")["title"], abs=1e-4)
+    assert liv["pts_now"][0] < liv["pts_now"][1]
+    assert len(pd.read_parquet(base / "outputs" / "history.parquet")) == 40
+    assert len(pd.read_parquet(base / "outputs" / "position_dist.parquet")) == 800
+
+
+def test_timeline_keeps_the_fullest_run_of_a_matchweek():
+    def rows(mw, played, title):
+        return [{"season": "s", "matchweek": mw, "matches_played": played, "data_through": "d", "reconstructed": False,
+                 "team": t, "table_pos": i + 1, "pts_now": played, "model_pos": i + 1, "exp_pts": 50.0, "elo": 1500.0,
+                 "title": title, "top4": 0.5, "top5": 0.6, "relegated": 0.1} for i, t in enumerate(("A", "B"))]
+    h = pd.DataFrame(rows(11, 105, 0.2) + rows(11, 110, 0.3) + rows(10, 100, 0.1) + [{**rows(11, 120, 0.9)[0], "season": "other"}])
+    t = outputs.timeline(h, "s")
+    assert [(w["matchweek"], w["matches_played"]) for w in t["matchweeks"]] == [(10, 100), (11, 110)]
+    assert t["clubs"]["A"]["title"] == [0.1, 0.3] and t["clubs"]["B"]["table_pos"] == [2.0, 2.0]
+
+
+def test_backfill_rebuilds_every_earlier_matchweek(data_dir, frozen_dir, tmp_path):
+    rebuilt = run_week.backfill(data_dir, tmp_path / "o", tmp_path / "s", current_dir=frozen_dir, now=NOW, n_sims=200, **QUIET)
+    assert rebuilt == list(range(1, 10))
+    assert sorted(p.name for p in (tmp_path / "s" / "snapshots").iterdir()) == [f"mw{n:02d}.json" for n in range(1, 10)]
+    t = _strict((tmp_path / "s" / "history.json").read_text())
+    assert [w["matches_played"] for w in t["matchweeks"]] == [10 * n for n in range(1, 10)]
+    assert not (tmp_path / "s" / "feed.json").exists()
+
+
+def test_gap_filling_never_replaces_a_snapshot_made_at_the_time(week, data_dir, frozen_dir):
+    base, _ = _rerun(week, data_dir, frozen_dir)
+    kw = dict(current_dir=frozen_dir, now=NOW, n_sims=SIMS, **QUIET)
+    assert run_week.backfill(data_dir, base / "outputs", base / "site", only_missing=True, **kw) == list(range(1, 10))
+    assert run_week.backfill(data_dir, base / "outputs", base / "site", only_missing=True, **kw) == []
+    snaps = pd.read_parquet(base / "outputs" / "snapshots.parquet")
+    assert snaps["matchweek"].tolist() == list(range(1, 11))
+    assert snaps["reconstructed"].tolist() == [True] * 9 + [False]
+
+
+def test_finished_matchweeks_respect_postponed_matches(matches):
+    from dataclasses import replace
+    cur = [m for m in matches if m.season == "2026-27"]
+    assert run_week.finished_matchweeks(cur) == list(range(1, 11))
+    i = next(k for k, m in enumerate(cur) if m.gameweek == 4)
+    gone = replace(cur[i], home_goals=None, away_goals=None)
+    hole = cur[:i] + [gone] + cur[i + 1:]
+    assert 4 not in run_week.finished_matchweeks(hole)
+    assert 4 in run_week.finished_matchweeks(hole, postponed={(gone.home, gone.away)})
+
+
+def test_snapshot_table_records_how_each_run_was_made(week, feed):
+    snaps = pd.read_parquet(week["out"] / "snapshots.parquet")
+    assert len(snaps) == 1
+    row = snaps.iloc[0]
+    assert (row["season"], row["matches_played"], row["matchweek"], bool(row["reconstructed"])) == ("2026-27", 100, 10, False)
+    assert (row["n_sims"], row["seed"], row["sigma"], row["elo_k"]) == (SIMS, config.SEED, config.SIGMA, config.ELO.k)
+    assert row["model_version"] == outputs.model_version(feed["meta"]) and len(row["model_version"]) == 10
+    assert outputs.model_version({**feed["meta"], "sigma": 35.0}) != row["model_version"]
+
+
+def test_history_holds_the_real_table_beside_the_model(week, matches):
+    from eplsim.data import league_table
+    h = pd.read_parquet(week["out"] / "history.parquet").set_index("team")
+    for r in league_table([m for m in matches if m.season == "2026-27"]):
+        got = h.loc[r["team"]]
+        assert (got["won"], got["drawn"], got["lost"], got["goals_for"], got["goals_against"], got["pts_now"]) == \
+            (r["w"], r["d"], r["l"], r["gf"], r["ga"], r["pts"])
+
+
+def test_the_workflow_commits_every_file_the_run_writes(week, root):
+    """Found on 12 Nov: snapshots were written but never committed, so past matchweeks
+    would have disappeared from the live page after the next run."""
+    import re
+    yml = (root / ".github" / "workflows" / "weekly.yml").read_text(encoding="utf-8")
+    added = re.search(r"git add ([^\n]+)", yml).group(1).split()
+    written = [p.relative_to(week["base"]) for p in week["base"].rglob("*") if p.is_file()]
+    for rel in written:
+        path = ("outputs" if rel.parts[0] == "outputs" else "site") + "/" + "/".join(rel.parts[1:])
+        assert any(path == a or path.startswith(a.rstrip("/") + "/") for a in added), path

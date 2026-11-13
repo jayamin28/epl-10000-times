@@ -1,7 +1,9 @@
 """Writers for everything a run leaves behind.
 
   seasons parquet    one row per simulated season: every club's place and points
-  history parquet    one row per club per run: the headline odds over time
+  snapshots parquet  one row per run: when, what data, which settings
+  history parquet    one row per club per run: the real table and the model's odds over time
+  position parquet   one row per club per final place per run: the whole matrix over time
   forecast log       one row per upcoming match: the odds given before kick-off
   feed.json          everything the page draws, plus how the run was made
 """
@@ -50,11 +52,69 @@ def upsert(path: Path, rows: list[dict], key: list[str], sort: list[str]) -> pd.
     return new
 
 
-def history_rows(meta: dict, headline: list[dict]) -> list[dict]:
-    keep = ("team", "played", "pts_now", "elo", "exp_pts", "title", "top4", "top5", "relegated")
+MODEL_VERSION_FIELDS = ("n_sims", "seed", "sigma", "elo", "goals_window_seasons")
+
+
+def model_version(meta: dict) -> str:
+    """A short fingerprint of the frozen settings. If it changes, the model changed."""
+    import hashlib
+    blob = json.dumps({k: meta[k] for k in MODEL_VERSION_FIELDS}, sort_keys=True)
+    return hashlib.sha256(blob.encode()).hexdigest()[:10]
+
+
+def snapshot_row(meta: dict) -> dict:
+    """One row per run: when it ran, what data it saw and which settings made it."""
+    return {"season": meta["season"], "matches_played": meta["matches_played"], "matchweek": meta["matchweek"],
+            "data_through": meta["data_through"], "run_at": meta["generated_at"],
+            "reconstructed": bool(meta.get("reconstructed", False)), "n_sims": meta["n_sims"], "seed": meta["seed"],
+            "sigma": meta["sigma"], "elo_k": meta["elo"]["k"], "elo_promoted": meta["elo"]["promoted"],
+            "goals_window_seasons": meta["goals_window_seasons"], "goal_alpha": meta["goal_params"]["alpha"],
+            "goal_beta": meta["goal_params"]["beta"], "goal_gamma": meta["goal_params"]["gamma"],
+            "primary_source": meta.get("primary_source"), "run_id": meta.get("run_id"),
+            "model_version": model_version(meta)}
+
+
+def history_rows(meta: dict, headline: list[dict], table: list[dict] | None = None) -> list[dict]:
+    """One row per club for this run: where the club really is, and where the model puts it."""
+    keep = ("team", "played", "pts_now", "gd_now", "table_pos", "elo", "exp_pts", "most_likely_place",
+            "title", "top4", "top5", "relegated")
+    real = {r["team"]: {"won": r["w"], "drawn": r["d"], "lost": r["l"], "goals_for": r["gf"], "goals_against": r["ga"]}
+            for r in (table or [])}
     return [{"season": meta["season"], "matches_played": meta["matches_played"], "matchweek": meta["matchweek"],
-             "data_through": meta["data_through"], "run_at": meta["generated_at"], **{k: r[k] for k in keep}}
-            for r in headline]
+             "data_through": meta["data_through"], "run_at": meta["generated_at"],
+             "reconstructed": bool(meta.get("reconstructed", False)), "model_pos": i + 1, **{k: r[k] for k in keep},
+             **real.get(r["team"], {})}
+            for i, r in enumerate(headline)]
+
+
+def position_rows(meta: dict, matrix: np.ndarray, teams: list[str]) -> list[dict]:
+    """One row per club per final place: the share of seasons that ended there."""
+    return [{"season": meta["season"], "matches_played": meta["matches_played"], "matchweek": meta["matchweek"],
+             "team": t, "place": j + 1, "share": float(matrix[i, j])}
+            for i, t in enumerate(teams) for j in range(matrix.shape[1])]
+
+
+SERIES = ("table_pos", "pts_now", "model_pos", "exp_pts", "elo", "title", "top4", "top5", "relegated")
+
+
+def timeline(history: pd.DataFrame, season: str) -> dict:
+    """The season so far, one point per matchweek, shaped for the page.
+
+    A matchweek can be run more than once while its matches are being played.
+    The run with the most results stands for that matchweek.
+    """
+    h = history[history["season"] == season]
+    last = h.groupby("matchweek")["matches_played"].transform("max")
+    h = h[h["matches_played"] == last].sort_values(["matchweek", "team"])
+    weeks = h.drop_duplicates("matchweek")
+    recon = weeks["reconstructed"].fillna(False).astype(bool) if "reconstructed" in weeks else [False] * len(weeks)
+    out = {"season": season,
+           "matchweeks": [{"matchweek": int(mw), "matches_played": int(mp), "data_through": str(dt), "reconstructed": bool(rc)}
+                          for mw, mp, dt, rc in zip(weeks["matchweek"], weeks["matches_played"], weeks["data_through"], recon)],
+           "clubs": {}}
+    for team, rows in h.groupby("team"):
+        out["clubs"][team] = {k: [None if pd.isna(v) else float(v) for v in rows[k]] for k in SERIES if k in rows}
+    return round_floats(out)
 
 
 def forecast_rows(meta: dict, upcoming: dict) -> list[dict]:

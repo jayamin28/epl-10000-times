@@ -4,6 +4,12 @@
     python -m eplsim.run_week --offline        skip the fetch and use the files on disk
     python -m eplsim.run_week --force          run even if no new result has arrived
     python -m eplsim.run_week --archive launch also keep a permanent copy of the 10,000 seasons
+    python -m eplsim.run_week --as-of 7        rebuild the picture as it stood after matchweek 7
+    python -m eplsim.run_week --backfill       rebuild every earlier matchweek again, then run this one
+
+Every run first fills gaps: a finished matchweek with no snapshot (the first
+run of a season, or a week the schedule missed) is rebuilt from the results up
+to that week and marked as rebuilt.
 
 Steps: fetch three sources, merge them by majority vote, run the gates, stop
 if nothing changed, simulate 10,000 seasons, compute every published number,
@@ -19,6 +25,7 @@ import hashlib
 import json
 import os
 import sys
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -54,8 +61,17 @@ def _results_hash(current) -> str:
 
 def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None = None, do_fetch: bool = True,
         force: bool = False, now: datetime | None = None, n_sims: int = config.N_SIMS, get=fetch.http_get,
-        archive: str | None = None, log=print) -> dict:
+        archive: str | None = None, log=print, as_of: int | None = None) -> dict:
+    """Run one week. With `as_of`, rebuild an earlier matchweek instead.
+
+    A rebuilt matchweek uses only the results up to that matchweek, with today's
+    frozen settings. It adds to the history and writes its own snapshot. It does
+    not touch the live feed, the forecast log or the change detector, and it is
+    marked as reconstructed: it is what the model would have said, not what it said.
+    """
     data_dir, out_dir, site_dir = Path(data_dir), Path(out_dir), Path(site_dir)
+    if as_of is not None:
+        do_fetch = False
     current_dir = Path(current_dir) if current_dir else data_dir / "current"
     now = now or datetime.now(timezone.utc)
     season = pipeline.CURRENT
@@ -67,8 +83,13 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
 
     matches, report = pipeline.load_all(data_dir, current_dir=current_dir, with_report=True)
     rec = report[season]
+    if as_of is not None:
+        matches = [replace(m, home_goals=None, away_goals=None) if m.season == season and m.gameweek > as_of else m
+                   for m in matches]
     current = [m for m in matches if m.season == season]
     played = sum(m.played for m in current)
+    if as_of is not None and not played:
+        raise ValueError(f"no results up to matchweek {as_of}")
     log(f"reconcile: {played} results. {rec['agreed']} confirmed by 2+ sources, {len(rec['single_source'])} single-source, "
         f"{len(rec['overruled'])} overruled, {len(rec['awaiting_second_source'])} waiting for a second source. "
         f"Primary: {rec['primary']} {rec['sources']}")
@@ -76,13 +97,18 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     previous = _read_json(out_dir / "run_meta.json")
     postponed = {tuple(p) for p in (_read_json(data_dir / "postponed.json") or {}).get("fixtures", [])}
     positions, fpl_results = _fpl_positions(current_dir, season)
-    checks = gates.run_gates(current, league_table(current), now.date(), postponed,
-                             previous["matches_played"] if previous else None, manifest, positions, fpl_results)
+    if as_of is None:
+        checks = gates.run_gates(current, league_table(current), now.date(), postponed,
+                                 previous["matches_played"] if previous else None, manifest, positions, fpl_results)
+    else:
+        checks = [gates.fixture_list(current)]
+        if checks[0]["status"] == "fail":
+            raise gates.GateError(f"fixture_list: {checks[0]['detail']}")
     for c in checks:
         log(f"gate {c['gate']}: {c['status']} ({c['detail']})")
 
     results_hash = _results_hash(current)
-    if previous and previous.get("results_hash") == results_hash and not force:
+    if as_of is None and previous and previous.get("results_hash") == results_hash and not force:
         log("no new results since the last run, nothing to publish")
         return {"changed": False, "matches_played": played}
 
@@ -107,6 +133,7 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
         "gates": checks, "tiebreak": res.tiebreak, "level_at_key_places": res.full_ties,
         "noise_note": "Two runs of the same data can differ by about 1.3 points. Changes under 3 points are not news.",
         "badge_colours_verified": clubs.COLOURS_VERIFIED,
+        "reconstructed": as_of is not None,
         "run_id": os.environ.get("GITHUB_RUN_ID"), "commit": os.environ.get("GITHUB_SHA"),
     }
 
@@ -116,7 +143,9 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     swings = metrics.match_swings(snap, sim, nxt["fixtures"])
     leaders = [r["team"] for r in sorted(headline, key=lambda r: (-r["title"], r["team"]))[:2]]
 
-    hist = outputs.upsert(out_dir / "history.parquet", outputs.history_rows(meta, headline),
+    outputs.upsert(out_dir / "snapshots.parquet", [outputs.snapshot_row(meta)],
+                   key=["season", "matches_played"], sort=["season", "matches_played"])
+    hist = outputs.upsert(out_dir / "history.parquet", outputs.history_rows(meta, headline, snap.table),
                           key=["season", "matches_played", "team"], sort=["season", "matches_played", "team"])
     earlier = hist[(hist["season"] == season) & (hist["matchweek"] < matchweek)]
     if len(earlier):
@@ -127,8 +156,15 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     else:
         moved = {"since_matchweek": None, "rows": []}
 
-    log_table = outputs.upsert(out_dir / "forecast_log.parquet", outputs.forecast_rows(meta, nxt),
-                               key=["season", "home", "away"], sort=["season", "gameweek", "date", "home"])
+    outputs.upsert(out_dir / "position_dist.parquet", outputs.position_rows(meta, res.position_matrix(), res.teams),
+                   key=["season", "matches_played", "team", "place"], sort=["season", "matches_played", "team", "place"])
+    log_path = out_dir / "forecast_log.parquet"
+    if as_of is None:  # only odds given before kick-off belong in the log
+        log_table = outputs.upsert(log_path, outputs.forecast_rows(meta, nxt),
+                                   key=["season", "home", "away"], sort=["season", "gameweek", "date", "home"])
+    else:
+        import pandas as pd
+        log_table = pd.read_parquet(log_path) if log_path.exists() else pd.DataFrame()
     known = {(m.home, m.away): (m.home_goals, m.away_goals) for m in current if m.played}
     past = [m for m in matches if m.played and m.season not in pipeline.BURN_IN and m.season != season]
     hg = np.array([m.home_goals for m in past])
@@ -146,6 +182,11 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
         "universes": metrics.universes(res), "report_card": card,
     }
     feed = outputs.build_feed(meta, headline, res.position_matrix(), res.teams, sections)
+    outputs.write_json(site_dir / "snapshots" / f"mw{matchweek:02d}.json", feed)
+    outputs.write_json(site_dir / "history.json", outputs.timeline(hist, season))
+    if as_of is not None:
+        log(f"rebuilt matchweek {matchweek}: {played} played, {len(snap.remaining)} simulated")
+        return {"changed": True, "matches_played": played, "matchweek": matchweek, "feed": feed}
     outputs.write_json(site_dir / "feed.json", feed)
     outputs.write_seasons(out_dir / "seasons_latest.parquet", res)
     if archive:
@@ -161,6 +202,42 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     return {"changed": True, "matches_played": played, "matchweek": matchweek, "feed": feed}
 
 
+def finished_matchweeks(matches, season: str = pipeline.CURRENT, postponed=frozenset()) -> list[int]:
+    """Matchweeks whose every fixture has a result, apart from postponed ones."""
+    weeks: dict[int, bool] = {}
+    for m in matches:
+        if m.season == season and m.gameweek and m.gameweek > 0:
+            done = m.played or (m.home, m.away) in postponed
+            weeks[m.gameweek] = weeks.get(m.gameweek, True) and done
+    return sorted(w for w, done in weeks.items() if done)
+
+
+def backfill(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None = None, log=print,
+             only_missing: bool = False, **kw) -> list[int]:
+    """Rebuild finished matchweeks before the latest one, oldest first. Returns the matchweeks rebuilt.
+
+    With `only_missing`, skip any matchweek the history already holds, so a
+    snapshot made at the time is never replaced by a rebuilt one.
+    """
+    cur = Path(current_dir) if current_dir else Path(data_dir) / "current"
+    matches = pipeline.load_all(data_dir, current_dir=cur)
+    postponed = {tuple(p) for p in (_read_json(Path(data_dir) / "postponed.json") or {}).get("fixtures", [])}
+    played = [m.gameweek for m in matches if m.season == pipeline.CURRENT and m.played]
+    if not played:
+        return []
+    latest = max(played)
+    todo = [w for w in finished_matchweeks(matches, postponed=postponed) if w < latest]
+    hist_path = Path(out_dir) / "history.parquet"
+    if only_missing and hist_path.exists():
+        import pandas as pd
+        h = pd.read_parquet(hist_path, columns=["season", "matchweek"])
+        have = set(h.loc[h["season"] == pipeline.CURRENT, "matchweek"].astype(int))
+        todo = [w for w in todo if w not in have]
+    for mw in todo:
+        run(data_dir, out_dir, site_dir, current_dir=cur, as_of=mw, log=log, **kw)
+    return todo
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--data", default="data")
@@ -172,11 +249,21 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--archive", default=None)
     ap.add_argument("--sims", type=int, default=config.N_SIMS)
     ap.add_argument("--today", default=None, help="run as if it were this date, YYYY-MM-DD")
+    ap.add_argument("--as-of", type=int, default=None, help="rebuild the picture after this matchweek")
+    ap.add_argument("--backfill", action="store_true", help="rebuild every earlier matchweek, then run this one")
     a = ap.parse_args(argv)
     now = datetime.combine(date.fromisoformat(a.today), datetime.min.time(), tzinfo=timezone.utc) if a.today else None
+    common = dict(current_dir=a.current, now=now, n_sims=a.sims)
     try:
-        out = run(Path(a.data), Path(a.out), Path(a.site), current_dir=a.current, do_fetch=not a.offline,
-                  force=a.force, now=now, n_sims=a.sims, archive=a.archive)
+        if a.as_of is not None:
+            run(Path(a.data), Path(a.out), Path(a.site), as_of=a.as_of, **common)
+            return 0
+        out = run(Path(a.data), Path(a.out), Path(a.site), do_fetch=not a.offline, force=a.force,
+                  archive=a.archive, **common)
+        rebuilt = backfill(Path(a.data), Path(a.out), Path(a.site), only_missing=not a.backfill, **common)
+        if rebuilt:
+            print(f"rebuilt matchweeks {', '.join(map(str, rebuilt))}")
+            out = run(Path(a.data), Path(a.out), Path(a.site), do_fetch=False, force=True, archive=a.archive, **common)
     except gates.GateError as e:
         print(f"STOPPED by a gate, nothing published: {e}", file=sys.stderr)
         return 2

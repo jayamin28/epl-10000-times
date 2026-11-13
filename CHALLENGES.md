@@ -30,10 +30,12 @@ A build log for [The Premier League, 10,000 times](README.md). Every entry is so
 
 ## Trusting the numbers
 
+**The pipeline saved its history, then threw it away every morning.** Each run froze a snapshot of the matchweek so the page could go back in time. The scheduled workflow committed only the latest page, so every deploy would have dropped the earlier weeks. A test now runs the weekly command, lists every file it wrote and fails if the workflow does not keep it. Check: `tests/test_run_week.py`.
+
 **Same data, different answer.** Two files holding the same 100 results gave Liverpool 575 title wins in one run and 540 in the other. The cause: the sources list fixtures in a different order, and the random numbers were dealt out in fixture order. Fixtures are now sorted before any dice are rolled, and a test shuffles the input and demands identical seasons. Check: `tests/test_run_week.py`.
 
 **I was wrong about the noise.** I assumed two runs on the same data would differ by about 1 percentage point. Measured over 30 runs it is closer to 1.3, with gaps over 2 between the luckiest and unluckiest run. The rule on the page: a change under 3 points is not news.
 
-**A test suite that had never failed.** The first full run passed. A suite that has never failed has proved nothing. I injected deliberate bugs one at a time: an away win worth 2 points, a minority source winning a vote, relegation counting the bottom two. Planning them exposed one test that would have let a real bug through. It was fixed first. All 15 are now caught.
+**A test suite that had never failed.** The first full run passed. A suite that has never failed has proved nothing. I injected deliberate bugs one at a time: an away win worth 2 points, a minority source winning a vote, relegation counting the bottom two. Planning them exposed one test that would have let a real bug through. It was fixed first. All 17 are now caught.
 
 **Seven of twenty clubs are red.** The page uses club-colour discs instead of crests. Seven clubs are red, so colour alone cannot tell them apart. The three-letter code carries identity and colour supports it.
