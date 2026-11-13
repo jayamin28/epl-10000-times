@@ -5,7 +5,7 @@
   "matches_played": 100,
   "matches_remaining": 280,
   "data_through": "2026-11-08",
-  "generated_at": "2026-11-13T03:14:33Z",
+  "generated_at": "2026-11-13T04:27:12Z",
   "n_sims": 10000,
   "seed": 2026,
   "sigma": 65.0,
@@ -26,7 +26,7 @@
    "openfootball": 50
   },
   "primary_source": "fpl",
-  "fpl_origin": null,
+  "fpl_origin": "api",
   "reconciliation": {
    "confirmed_by_two_or_more": 100,
    "single_source": 0,
@@ -42,8 +42,8 @@
    },
    {
     "gate": "sources_reachable",
-    "status": "skipped",
-    "detail": "offline run, nothing was fetched",
+    "status": "pass",
+    "detail": "reached: fpl, mirror, openfootball",
     "blocking": true
    },
    {
@@ -81,8 +81,36 @@
   "noise_note": "Two runs of the same data can differ by about 1.3 points. Changes under 3 points are not news.",
   "badge_colours_verified": false,
   "reconstructed": false,
-  "run_id": "43357180030",
-  "commit": "676e02d377c186dfd507a995707eda5f72213b13"
+  "run_id": "43365420075",
+  "commit": "21bdf320146bee7a10ebaedd5aeabbc4ab17e2c0",
+  "telemetry": {
+   "seasons": 10000,
+   "matches": 2800000,
+   "goals": 8090284,
+   "goals_per_match": 2.8894,
+   "random_draws": 6000000,
+   "distinct_champions": 11,
+   "distinct_relegated_trios": 382,
+   "most_common_score": "1-1",
+   "most_common_score_share": 0.1073,
+   "biggest_win": {
+    "home": "Man City",
+    "away": "Everton",
+    "score": "13-0",
+    "season": 1007
+   },
+   "max_points": {
+    "points": 109,
+    "team": "Arsenal"
+   },
+   "min_points": {
+    "points": 9,
+    "team": "Coventry"
+   },
+   "seconds": 0.35,
+   "full_runs": 31,
+   "seasons_incl_match_pricing": 310000
+  }
  },
  "clubs": [
   {
