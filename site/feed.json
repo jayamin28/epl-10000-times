@@ -5,7 +5,7 @@
   "matches_played": 100,
   "matches_remaining": 280,
   "data_through": "2026-11-08",
-  "generated_at": "2026-11-12T19:26:34Z",
+  "generated_at": "2026-11-13T03:14:33Z",
   "n_sims": 10000,
   "seed": 2026,
   "sigma": 65.0,
@@ -26,7 +26,7 @@
    "openfootball": 50
   },
   "primary_source": "fpl",
-  "fpl_origin": "api",
+  "fpl_origin": null,
   "reconciliation": {
    "confirmed_by_two_or_more": 100,
    "single_source": 0,
@@ -42,8 +42,8 @@
    },
    {
     "gate": "sources_reachable",
-    "status": "pass",
-    "detail": "reached: fpl, mirror, openfootball",
+    "status": "skipped",
+    "detail": "offline run, nothing was fetched",
     "blocking": true
    },
    {
@@ -80,8 +80,9 @@
   },
   "noise_note": "Two runs of the same data can differ by about 1.3 points. Changes under 3 points are not news.",
   "badge_colours_verified": false,
-  "run_id": "43290006035",
-  "commit": "c8c0d4f8d09855a1a65feb3faedffeb4cb72b203"
+  "reconstructed": false,
+  "run_id": "43357180030",
+  "commit": "676e02d377c186dfd507a995707eda5f72213b13"
  },
  "clubs": [
   {
@@ -4215,8 +4216,149 @@
   ]
  },
  "movers": {
-  "since_matchweek": null,
-  "rows": []
+  "since_matchweek": 9,
+  "rows": [
+   {
+    "team": "Man City",
+    "race": "title",
+    "before": 0.3617,
+    "after": 0.2381,
+    "change": -0.1236
+   },
+   {
+    "team": "Nottingham Forest",
+    "race": "relegated",
+    "before": 0.2697,
+    "after": 0.165,
+    "change": -0.1047
+   },
+   {
+    "team": "Chelsea",
+    "race": "top5",
+    "before": 0.4002,
+    "after": 0.296,
+    "change": -0.1042
+   },
+   {
+    "team": "Sunderland",
+    "race": "relegated",
+    "before": 0.5076,
+    "after": 0.4054,
+    "change": -0.1022
+   },
+   {
+    "team": "Arsenal",
+    "race": "title",
+    "before": 0.57,
+    "after": 0.6631,
+    "change": 0.0931
+   },
+   {
+    "team": "Brighton",
+    "race": "top4",
+    "before": 0.5186,
+    "after": 0.6086,
+    "change": 0.09
+   },
+   {
+    "team": "Chelsea",
+    "race": "top4",
+    "before": 0.2573,
+    "after": 0.1693,
+    "change": -0.088
+   },
+   {
+    "team": "Brighton",
+    "race": "top5",
+    "before": 0.666,
+    "after": 0.7506,
+    "change": 0.0846
+   },
+   {
+    "team": "Coventry",
+    "race": "relegated",
+    "before": 0.5035,
+    "after": 0.5767,
+    "change": 0.0732
+   },
+   {
+    "team": "Crystal Palace",
+    "race": "relegated",
+    "before": 0.2845,
+    "after": 0.3522,
+    "change": 0.0677
+   },
+   {
+    "team": "Liverpool",
+    "race": "top4",
+    "before": 0.6489,
+    "after": 0.7152,
+    "change": 0.0663
+   },
+   {
+    "team": "Ipswich",
+    "race": "relegated",
+    "before": 0.4019,
+    "after": 0.466,
+    "change": 0.0641
+   },
+   {
+    "team": "Brentford",
+    "race": "top5",
+    "before": 0.2313,
+    "after": 0.1713,
+    "change": -0.06
+   },
+   {
+    "team": "Liverpool",
+    "race": "top5",
+    "before": 0.7731,
+    "after": 0.8258,
+    "change": 0.0527
+   },
+   {
+    "team": "Leeds",
+    "race": "relegated",
+    "before": 0.1356,
+    "after": 0.0854,
+    "change": -0.0502
+   },
+   {
+    "team": "Bournemouth",
+    "race": "top5",
+    "before": 0.2268,
+    "after": 0.2736,
+    "change": 0.0468
+   },
+   {
+    "team": "Brentford",
+    "race": "top4",
+    "before": 0.1295,
+    "after": 0.0834,
+    "change": -0.0461
+   },
+   {
+    "team": "Tottenham",
+    "race": "relegated",
+    "before": 0.1077,
+    "after": 0.1457,
+    "change": 0.038
+   },
+   {
+    "team": "Man City",
+    "race": "top4",
+    "before": 0.9619,
+    "after": 0.925,
+    "change": -0.0369
+   },
+   {
+    "team": "Everton",
+    "race": "top5",
+    "before": 0.1016,
+    "after": 0.134,
+    "change": 0.0324
+   }
+  ]
  },
  "universes": {
   "teams": [
