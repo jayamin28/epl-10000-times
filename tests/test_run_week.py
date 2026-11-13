@@ -63,6 +63,9 @@ def test_feed_has_every_section_the_page_draws(feed):
     assert [g["gate"] for g in meta["gates"]][:1] == ["fixture_list"] and not any(g["status"] == "fail" for g in meta["gates"])
     assert meta["badge_colours_verified"] is clubs.COLOURS_VERIFIED
     assert set(meta["tiebreak"]) >= {"groups", "left_to_a_play_off"}
+    tel = meta["telemetry"]
+    assert tel["seasons"] == SIMS and tel["matches"] == SIMS * 280 and tel["full_runs"] == 31
+
 
 
 def test_feed_clubs_carry_odds_and_badge_colours(feed):
@@ -147,7 +150,11 @@ def test_a_forced_rerun_gives_the_same_numbers(week, data_dir, frozen_dir, feed)
     gates_now = {g["gate"]: g["status"] for g in again["meta"].pop("gates")}
     gates_then = {g["gate"]: g["status"] for g in feed["meta"]["gates"]}
     assert (gates_then["results_never_vanish"], gates_now["results_never_vanish"]) == ("skipped", "pass")
-    assert again == {**feed, "meta": {k: v for k, v in feed["meta"].items() if k != "gates"}}
+    # Run time is the one thing allowed to differ: it is a stopwatch, not a result.
+    then = {**feed, "meta": {k: v for k, v in feed["meta"].items() if k != "gates"}}
+    for f in (again, then):
+        f["meta"] = {**f["meta"], "telemetry": {k: v for k, v in f["meta"]["telemetry"].items() if k != "seconds"}}
+    assert again == then
     assert len(pd.read_parquet(base / "outputs" / "history.parquet")) == 20  # replaced, not appended
 
 

@@ -71,7 +71,10 @@ def snapshot_row(meta: dict) -> dict:
             "goals_window_seasons": meta["goals_window_seasons"], "goal_alpha": meta["goal_params"]["alpha"],
             "goal_beta": meta["goal_params"]["beta"], "goal_gamma": meta["goal_params"]["gamma"],
             "primary_source": meta.get("primary_source"), "run_id": meta.get("run_id"),
-            "model_version": model_version(meta)}
+            "model_version": model_version(meta),
+            **{f"engine_{k}": v for k, v in (meta.get("telemetry") or {}).items()
+               if k in ("matches", "goals", "random_draws", "distinct_champions", "distinct_relegated_trios", "seconds",
+                        "seasons_incl_match_pricing")}}
 
 
 def history_rows(meta: dict, headline: list[dict], table: list[dict] | None = None) -> list[dict]:

@@ -312,3 +312,37 @@ def report_card(forecasts: list[dict], results: dict[tuple[str, str], tuple[int,
         right += p[k] == max(p)
     n = len(scored)
     return {"matches": n, "log_loss": ll / n, "baseline_log_loss": base_ll / n, "brier": brier / n, "accuracy": right / n}
+
+
+def telemetry(res: SimResult, seconds: float | None = None, reruns: int = 0) -> dict:
+    """What the engine did on this run, in countable things.
+
+    `reruns` is the number of extra full runs made to price individual
+    matches (three per fixture of the next gameweek).
+    """
+    hg, ag = res.home_goals.astype(np.int64), res.away_goals.astype(np.int64)
+    matches = int(hg.size)
+    big_s, big_f = np.unravel_index(np.argmax(np.abs(hg - ag)), hg.shape) if matches else (None, None)
+    scores, counts = np.unique(np.minimum(hg, 9) * 10 + np.minimum(ag, 9), return_counts=True) if matches else ([], [])
+    common = int(scores[np.argmax(counts)]) if matches else None
+    champs = res.champion
+    bottom = np.sort(np.argsort(res.position, axis=1)[:, -3:], axis=1)
+    return {
+        "seasons": res.n_sims,
+        "matches": matches,
+        "goals": int(hg.sum() + ag.sum()),
+        "goals_per_match": float((hg.sum() + ag.sum()) / matches) if matches else None,
+        "random_draws": res.random_draws,
+        "distinct_champions": int(len(np.unique(champs))),
+        "distinct_relegated_trios": int(len({tuple(r) for r in bottom.tolist()})),
+        "most_common_score": f"{common // 10}-{common % 10}" if common is not None else None,
+        "most_common_score_share": float(counts.max() / matches) if matches else None,
+        "biggest_win": None if big_f is None else {
+            "home": res.fixtures[big_f][0], "away": res.fixtures[big_f][1],
+            "score": f"{int(hg[big_s, big_f])}-{int(ag[big_s, big_f])}", "season": int(big_s) + 1},
+        "max_points": {"points": int(res.points.max()), "team": res.teams[int(np.unravel_index(np.argmax(res.points), res.points.shape)[1])]},
+        "min_points": {"points": int(res.points.min()), "team": res.teams[int(np.unravel_index(np.argmin(res.points), res.points.shape)[1])]},
+        "seconds": None if seconds is None else round(float(seconds), 2),
+        "full_runs": 1 + reruns,
+        "seasons_incl_match_pricing": res.n_sims * (1 + reruns),
+    }

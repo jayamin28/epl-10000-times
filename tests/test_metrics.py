@@ -260,3 +260,26 @@ def test_next_fixtures_on_the_live_snapshot(snap):
     assert nxt["gameweek"] == 11 and len(nxt["fixtures"]) == 10
     clubs = {f["home"] for f in nxt["fixtures"]} | {f["away"] for f in nxt["fixtures"]}
     assert len(clubs) == 20
+
+
+def test_telemetry_counts_what_the_engine_did(snap, result):
+    t = metrics.telemetry(result, seconds=0.5, reruns=30)
+    n_fix = len(snap.remaining)
+    assert t["matches"] == result.n_sims * n_fix
+    assert t["random_draws"] == result.n_sims * (2 * len(result.teams) + 2 * n_fix)  # noise, two scores, tie order
+    assert t["goals"] == int(result.home_goals.sum()) + int(result.away_goals.sum())
+    assert t["distinct_champions"] == int((result.prob_top(1) > 0).sum())
+    assert 1 <= t["distinct_relegated_trios"] <= result.n_sims
+    assert (t["full_runs"], t["seasons_incl_match_pricing"]) == (31, 31 * result.n_sims)
+    hg, ag = (int(v) for v in t["biggest_win"]["score"].split("-"))
+    s, col = t["biggest_win"]["season"] - 1, result.fixtures.index((t["biggest_win"]["home"], t["biggest_win"]["away"]))
+    assert (result.home_goals[s, col], result.away_goals[s, col]) == (hg, ag)
+    assert abs(hg - ag) == int(abs(result.home_goals.astype(int) - result.away_goals.astype(int)).max())
+    assert t["max_points"]["points"] == result.points.max() and t["min_points"]["points"] == result.points.min()
+
+
+def test_telemetry_on_the_hand_built_league(res):
+    t = metrics.telemetry(res)
+    assert (t["matches"], t["goals"], t["distinct_champions"]) == (30, 4, 3)
+    assert t["biggest_win"] == {"home": "Cork", "away": "Ajax", "score": "3-0", "season": 10}
+    assert t["most_common_score"] == "0-0" and t["seconds"] is None

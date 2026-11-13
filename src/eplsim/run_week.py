@@ -25,6 +25,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from dataclasses import replace
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -117,7 +118,9 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     def sim(forced=None):
         return pipeline.run_sim(snap, n_sims=n_sims, sigma=config.SIGMA, seed=config.SEED, forced=forced)
 
+    started = time.perf_counter()
     res = sim()
+    sim_seconds = time.perf_counter() - started
     matchweek = max(m.gameweek for m in current if m.played)
     meta = {
         "season": season, "matchweek": matchweek, "matches_played": played, "matches_remaining": len(snap.remaining),
@@ -141,6 +144,8 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     nxt = metrics.upcoming(snap)
     log(f"simulated {n_sims} seasons. Working out what next week's {len(nxt['fixtures'])} fixtures are worth")
     swings = metrics.match_swings(snap, sim, nxt["fixtures"])
+    engine = metrics.telemetry(res, seconds=sim_seconds, reruns=3 * len(nxt["fixtures"]))
+    meta["telemetry"] = engine
     leaders = [r["team"] for r in sorted(headline, key=lambda r: (-r["title"], r["team"]))[:2]]
 
     outputs.upsert(out_dir / "snapshots.parquet", [outputs.snapshot_row(meta)],

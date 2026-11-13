@@ -36,6 +36,7 @@ class SimResult:
     home_goals: np.ndarray | None = None  # (n_sims, n_fixtures) simulated scores
     away_goals: np.ndarray | None = None
     tiebreak: dict[str, int] = field(default_factory=dict)  # how clubs level on pts, GD and GF were split
+    random_draws: int = 0  # random numbers the run drew: rating noise, goals, and tie-break order
 
     @property
     def champion(self) -> np.ndarray:
@@ -193,4 +194,5 @@ def simulate(
     position[rows, order] = np.arange(1, n_teams + 1)[None, :]
 
     return SimResult(teams, position, points, gd, full_ties, n_sims, seed, goals_for=gf, fixtures=list(fixtures),
-                     home_goals=hg.astype(np.int16), away_goals=ag.astype(np.int16), tiebreak=tiebreak)
+                     home_goals=hg.astype(np.int16), away_goals=ag.astype(np.int16), tiebreak=tiebreak,
+                     random_draws=int(r.size + hg.size + ag.size + jitter.size))
