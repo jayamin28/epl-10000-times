@@ -1,6 +1,6 @@
 {
   "season": "2026-27",
-  "fetched_at": "2026-11-13T06:39:46Z",
+  "fetched_at": "2026-11-13T06:46:26Z",
   "fetched_on": "2026-11-13",
   "sources": {
     "fpl": {
@@ -12,7 +12,7 @@
           "ok": true
         }
       ],
-      "sha": "0918d83052bc2473"
+      "sha": "06d2ec7f65dc1649"
     },
     "mirror": {
       "ok": true,
