@@ -3,80 +3,93 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light">
-<title>The Premier League, 10,000 times</title>
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#02030A">
+<title>The EPL in 10,000 different universes</title>
 <meta name="description" content="The rest of the Premier League season, simulated 10,000 times after every Gameweek. Title, top four and relegation odds for all 20 clubs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap">
 <style>
 :root {
-  --bg: #FCFCFC; --ink: #32302F; --muted: #686664; --card: #FAF8F5; --line: #E4E2E1;
-  --accent: #32302F; --accent-ink: #FFFFFF; --neutral-chip: #F0EEEB;
-  --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --bg: #02030A; --card: #0B0D19; --card-2: #121527; --ink: #F2F3F5; --muted: #AEB4BF; --line: #1E2233; --edge: rgba(255,255,255,0.08);
+  --cyan: #6DB9DC; --gold: #E2C98F; --on-gold: #02030A;
+  --accent: #F2F3F5; --accent-ink: #02030A; --neutral-chip: #1A1E33;
+  --display: Anton, "Archivo Black", Impact, "Arial Narrow", sans-serif;
   --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 }
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.5; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
+body { margin: 0; position: relative; color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.5; }
+/* generated stadium, never a real photo: only behind the header, faded into the page */
+body::before { content: ""; position: absolute; z-index: -1; left: 0; right: 0; top: 0; height: 760px; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(2,3,10,0.55) 0, rgba(2,3,10,0.82) 50%, var(--bg) 100%),
+    radial-gradient(ellipse 70% 420px at 50% 0, rgba(70,80,190,0.30), transparent 70%),
+    url("bg-stadium.jpg") center top / cover no-repeat; }
 main { max-width: 1040px; margin: 0 auto; padding: 28px 16px 64px; display: flex; flex-direction: column; gap: 56px; }
-h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -0.01em; margin: 0; line-height: 1.15; }
-h1 { font-size: clamp(34px, 6vw, 56px); }
-h2 { font-size: clamp(26px, 4vw, 36px); }
-h3 { font-size: 20px; font-family: var(--sans); letter-spacing: 0; }
+h1, h2 { font-family: var(--display); font-weight: 400; text-transform: uppercase; letter-spacing: 0.01em; margin: 0; line-height: 1.02; }
+h1 { font-size: clamp(40px, 7.4vw, 76px); }
+h1 .g { color: var(--gold); }
+h2 { font-size: clamp(28px, 4.4vw, 40px); }
+h3 { font-size: 20px; font-weight: 600; margin: 0; line-height: 1.25; }
 p { margin: 0; }
-a { color: var(--ink); text-underline-offset: 3px; }
+a { color: var(--cyan); text-underline-offset: 3px; }
 .muted { color: var(--muted); }
 .num { font-variant-numeric: tabular-nums; }
+.kicker { color: var(--cyan); font-size: 14px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; }
 .topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 15px; }
-.tag { display: inline-block; border: 1px solid var(--ink); color: var(--ink); border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600; }
-.lede { font-size: clamp(18px, 2.4vw, 21px); color: var(--muted); max-width: 46em; }
+.lede { font-size: clamp(18px, 2.4vw, 21px); color: var(--ink); max-width: 40em; }
+.lede strong { color: var(--gold); font-weight: 600; }
 section { display: flex; flex-direction: column; gap: 18px; }
-.sec-head { display: flex; flex-direction: column; gap: 6px; }
+.sec-head { display: flex; flex-direction: column; gap: 8px; }
 .why { color: var(--muted); max-width: 46em; }
-.card { background: var(--card); border-radius: 20px; padding: 22px; }
+.card { background: var(--card); border: 1px solid var(--edge); border-radius: 20px; padding: 22px; }
+.card .card { background: var(--card-2); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .tile { display: flex; flex-direction: column; gap: 4px; }
-.tile .label { color: var(--muted); font-size: 15px; }
-.tile .value { font-family: var(--serif); font-weight: 600; font-size: 40px; line-height: 1.1; }
+.tile .label { color: var(--cyan); font-size: 13px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
+.tile .value { font-family: var(--display); font-weight: 400; font-size: 46px; line-height: 1.05; }
 .tile .note { color: var(--muted); font-size: 14px; }
-.hero-num { font-family: var(--serif); font-weight: 600; font-size: clamp(64px, 13vw, 128px); line-height: 0.95; letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; }
+.hero-num { font-family: var(--display); font-weight: 400; font-size: clamp(72px, 14vw, 140px); line-height: 0.95; color: var(--gold); white-space: nowrap; text-transform: uppercase; }
 #club-num { color: var(--accent); }
 .hero-row { display: flex; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
 .hero-row p { font-size: clamp(18px, 2.4vw, 22px); max-width: 22em; padding-bottom: 8px; }
 
 /* club badge: a disc in the club's colours with its three-letter code. Not a crest. */
-.badge { flex: none; border-radius: 999px; border: 1px solid var(--line); padding: 2px; display: inline-flex; }
+.badge { flex: none; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); padding: 2px; display: inline-flex; }
 .badge i { flex: 1; border-radius: 999px; border-style: solid; display: flex; align-items: center; justify-content: center; font-style: normal; font-weight: 600; letter-spacing: 0.04em; }
 .badge.s { width: 22px; height: 22px; } .badge.s i { border-width: 3px; }
 .badge.l { width: 76px; height: 76px; padding: 4px; } .badge.l i { border-width: 4px; font-size: 20px; }
 .clubline { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 
 .picker { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-select, input[type=number], button { font: inherit; color: var(--ink); background: #fff; border: 1px solid #D5D2CF; border-radius: 10px; padding: 9px 12px; min-height: 44px; }
-button { cursor: pointer; background: var(--ink); color: #fff; border-color: var(--ink); font-weight: 600; }
-button.ghost { background: #fff; color: var(--ink); border-color: #D5D2CF; font-weight: 500; }
-select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+select, input[type=number], button { font: inherit; color: var(--ink); background: var(--card-2); border: 1px solid #2A2F45; border-radius: 10px; padding: 9px 12px; min-height: 44px; }
+select { color-scheme: dark; }
+button { cursor: pointer; background: var(--gold); color: var(--on-gold); border-color: var(--gold); font-weight: 600; }
+button.ghost { background: transparent; color: var(--ink); border-color: #2A2F45; font-weight: 500; }
+select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
 .club-head { display: flex; align-items: center; gap: 16px; }
+.club-head h3 { font-family: var(--display); font-weight: 400; text-transform: uppercase; font-size: clamp(32px, 6vw, 52px); line-height: 1; }
 .club-head .sub { color: var(--muted); }
-.bars { display: flex; align-items: flex-end; gap: 2px; height: 180px; border-bottom: 1px solid #E4E2E1; }
+.bars { display: flex; align-items: flex-end; gap: 2px; height: 180px; border-bottom: 1px solid var(--line); }
 .bars > div { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; height: 100%; }
 .bars .bar { width: 100%; border-radius: 4px 4px 0 0; min-height: 1px; }
 .bars .lab { font-size: 13px; font-weight: 500; white-space: nowrap; }
 .axis { display: flex; gap: 2px; font-size: 12px; color: var(--muted); }
 .axis > div { flex: 1 1 0; min-width: 0; text-align: center; }
 .chips { display: flex; gap: 10px; flex-wrap: wrap; }
-.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 9px 14px; font-weight: 500; }
+.chip { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 9px 16px; font-weight: 600; }
 .chip.up { background: var(--accent); color: var(--accent-ink); }
 .chip.flat { background: var(--neutral-chip); color: var(--ink); }
-.chip.down { background: #fff; color: var(--ink); border: 1px solid #D5D2CF; }
+.chip.down { background: transparent; color: var(--ink); border: 1px solid #3A3F58; }
 .chip svg { flex: none; }
 
 /* heatmap */
 .matrix { display: flex; flex-direction: column; gap: 3px; }
 .mrow { display: grid; grid-template-columns: 64px minmax(0, 1fr) 40px; align-items: center; gap: 8px; border-radius: 6px; }
-.mrow.mine { outline: 2px solid var(--ink); outline-offset: 2px; }
+.mrow.mine { outline: 2px solid var(--gold); outline-offset: 2px; }
 .mrow.mine .code { font-weight: 700; }
 .mrow .code { font-weight: 500; font-size: 14px; letter-spacing: 0.02em; }
 .cells { display: grid; grid-template-columns: repeat(4, 1fr) 4px repeat(13, 1fr) 4px repeat(3, 1fr); gap: 1px; height: 26px; }
@@ -87,35 +100,35 @@ select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible
 .mrow .pts { text-align: right; font-weight: 500; font-size: 14px; }
 .bands { display: grid; grid-template-columns: 64px minmax(0, 1fr) 40px; gap: 8px; font-size: 13px; }
 .bands .cells { height: auto; }
-.bands .t4 { grid-column: 1 / 5; border-bottom: 2px solid var(--ink); padding-bottom: 2px; white-space: nowrap; }
-.bands .dn { grid-column: 20 / 23; border-bottom: 2px solid var(--ink); padding-bottom: 2px; text-align: right; white-space: nowrap; }
+.bands .t4 { grid-column: 1 / 5; border-bottom: 2px solid var(--cyan); color: var(--cyan); padding-bottom: 2px; white-space: nowrap; }
+.bands .dn { grid-column: 20 / 23; border-bottom: 2px solid var(--muted); padding-bottom: 2px; text-align: right; white-space: nowrap; }
 .legend { display: flex; align-items: flex-start; gap: 2px; font-size: 12px; color: var(--muted); }
 .legend div { display: flex; flex-direction: column; align-items: center; gap: 3px; }
 .legend b { width: 44px; height: 14px; border-radius: 2px; display: block; }
-#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: #fff; border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.35; max-width: 240px; display: none; }
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--bg); border-radius: 8px; padding: 6px 10px; font-size: 13px; line-height: 1.35; max-width: 240px; display: none; }
 
 .scroll { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 15px; }
 th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
-th { font-weight: 600; color: var(--muted); font-size: 13px; }
+th { font-weight: 600; color: var(--cyan); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
 th:first-child, td:first-child { text-align: left; }
-tr.mine td { background: color-mix(in srgb, var(--accent) 12%, #fff); }
+tr.mine td { background: color-mix(in srgb, var(--accent) 16%, var(--bg)); }
 td .pbar { display: inline-block; vertical-align: middle; width: 54px; height: 6px; background: var(--line); border-radius: 3px; margin-right: 8px; overflow: hidden; }
-td .pbar i { display: block; height: 100%; background: var(--ink); border-radius: 3px; }
+td .pbar i { display: block; height: 100%; background: var(--cyan); border-radius: 3px; }
 tr.mine td .pbar i { background: var(--accent); }
 .fix { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.4fr) auto; gap: 6px 14px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .fix .teams { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .wdl { display: flex; gap: 2px; height: 12px; }
 .wdl i { display: block; border-radius: 3px; min-width: 2px; }
-.wdl .d { background: #D5D2CF; }
+.wdl .d { background: #3A3F58; }
 .trend { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.trend figure { margin: 0; background: #fff; border-radius: 14px; padding: 14px 14px 8px; }
+.trend figure { margin: 0; background: var(--card-2); border-radius: 14px; padding: 14px 14px 8px; }
 .trend figcaption { font-size: 14px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
 .trend figcaption strong { color: var(--ink); font-weight: 600; }
 .trend svg { display: block; width: 100%; height: auto; overflow: visible; }
 .trend text { font: 11px var(--sans); fill: var(--muted); }
-.banner { background: var(--ink); color: #fff; border-radius: 14px; padding: 12px 16px; font-size: 15px; display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
-.banner button { background: #fff; color: var(--ink); border-color: #fff; min-height: 36px; padding: 5px 12px; }
+.banner { background: var(--gold); color: var(--on-gold); border-radius: 14px; padding: 12px 16px; font-size: 15px; font-weight: 500; display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+.banner button { background: var(--bg); color: var(--ink); border-color: var(--bg); min-height: 36px; padding: 5px 12px; }
 .fix .odds { font-size: 14px; color: var(--muted); text-align: right; }
 .key { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
 .key span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; background: var(--sw); }
@@ -138,12 +151,12 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
 }
 </style>
 </head>
-<body data-preview="true">
+<body>
 <main id="app">
   <header style="display:flex;flex-direction:column;gap:14px">
-    <div class="topline"><span id="stamp">Loading the latest run</span><span class="tag hidden" id="preview">Preview. Launching Sat 14 Nov</span></div>
-    <h1>The Premier League, 10,000 times</h1>
-    <p class="lede" id="lede">The table only tells you what has happened. So after every Gameweek I simulate the rest of the season 10,000 times, to see where your club is really heading.</p>
+    <div class="topline"><span id="stamp">Loading the latest run</span></div>
+    <h1>The EPL in <span class="g">10,000</span> different universes</h1>
+    <p class="lede" id="lede">Every fan asks the same thing after a weekend: <strong>can we still do it?</strong> The table can't answer that. So after every Gameweek I play the rest of the Premier League season 10,000 times and count where your club ends up.</p>
     <div class="picker"><label for="mw" class="muted">Go back in time</label><select id="mw"></select></div>
     <div class="banner hidden" id="past"><span id="past-text"></span><button type="button" id="past-back">Back to latest</button></div>
   </header>
@@ -182,7 +195,7 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
 
   <section aria-labelledby="h-matrix">
     <div class="sec-head"><h2 id="h-matrix">Where every club finishes</h2>
-      <p class="why">Each row is a club, each column a final place. Darker means it happened in more seasons. A club with one dark square is settled. A long pale smear means nobody knows yet.</p></div>
+      <p class="why">Each row is a club, each column a final place. Brighter means it happened in more seasons. A club with one bright square is settled. A long dim smear means nobody knows yet.</p></div>
     <div>
       <div class="bands" aria-hidden="true"><span></span><div class="cells"><span class="t4">Top four</span><span class="dn">Down</span></div><span></span></div>
       <div class="mrow mhead" aria-hidden="true"><span></span><div class="cells" id="mticks"></div><span class="pts muted" style="font-weight:400;font-size:12px">Pts</span></div>
@@ -283,7 +296,7 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
 (function () {
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
-  var HEAT_LO = [240, 238, 235], HEAT_HI = [50, 48, 47];
+  var HEAT_LO = [20, 23, 40], HEAT_HI = [109, 185, 220], CARD = "#0B0D19";
   var RACE_WORDS = { title: "win the title", top4: "finish in the top four", top5: "finish in the top five", relegated: "go down" };
   var RACE_SHORT = { title: "title", top4: "top four", top5: "top five", relegated: "relegation" };
   var feed, hist = null, latestMw = null, wired = false, byTeam = {}, maxCell = 1;
@@ -316,11 +329,14 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
   }
   function badge(team, size) {
     var c = byTeam[team];
-    var text = size === "l" ? '<span style="color:' + (lum(c.primary) > 0.5 ? "#32302F" : "#fff") + '">' + esc(c.code) + "</span>" : "";
+    var text = size === "l" ? '<span style="color:' + (lum(c.primary) > 0.5 ? "#02030A" : "#fff") + '">' + esc(c.code) + "</span>" : "";
     return '<span class="badge ' + size + '" style="background:' + c.primary + '" aria-hidden="true"><i style="border-color:' + c.secondary + '">' + text + "</i></span>";
   }
   function club(team) { return '<span class="clubline">' + badge(team, "s") + "<span>" + esc(team) + "</span></span>"; }
-  function mark(team) { var c = byTeam[team]; return lum(c.primary) > 0.6 ? (lum(c.secondary) > 0.6 ? "#32302F" : c.secondary) : c.primary; }
+  function contrast(a, b) { var x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+  function mix(hex, f) { return "#" + rgb(hex).map(function (v) { var n = Math.round(v + (255 - v) * f); return (n < 16 ? "0" : "") + n.toString(16); }).join(""); }
+  // the club's own colour, lightened only as far as it takes to read on the dark page (3:1 for marks)
+  function mark(team) { var c = byTeam[team].primary, f = 0; while (contrast(mix(c, f), CARD) < 3 && f < 1) f += 0.05; return mix(c, Math.min(f, 1)); }
   function rgb(hex) { return [1, 3, 5].map(function (i) { return parseInt(hex.substr(i, 2), 16); }); }
   function shade(p, hi) {
     var t = Math.sqrt(Math.min(1, p / maxCell)), top = hi || HEAT_HI;
@@ -364,9 +380,9 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
     var strongest = feed.clubs.slice().sort(function (a, b) { return b.elo - a.elo; }).map(function (x) { return x.team; }).indexOf(team) + 1;
     $("bias").textContent = team === "Liverpool" ? "My club, so it opens first. The numbers do not know that." : "";
     document.documentElement.style.setProperty("--accent", mark(team));
-    document.documentElement.style.setProperty("--accent-ink", lum(mark(team)) > 0.45 ? "#32302F" : "#FFFFFF");
+    document.documentElement.style.setProperty("--accent-ink", contrast(mark(team), "#02030A") >= contrast(mark(team), "#FFFFFF") ? "#02030A" : "#FFFFFF");
     renderTrend(team);
-    $("club-head").innerHTML = badge(team, "l") + '<div><h3 style="font-family:var(--serif);font-size:clamp(28px,5vw,40px);letter-spacing:-0.01em">' + esc(team) + '</h3><div class="sub">' + ordinal(c.table_pos) + " in the table on " + c.pts_now + " points. " + ordinal(strongest) + " strongest by rating.</div></div>";
+    $("club-head").innerHTML = badge(team, "l") + '<div><h3>' + esc(team) + '</h3><div class="sub">' + ordinal(c.table_pos) + " in the table on " + c.pts_now + " points. " + ordinal(strongest) + " strongest by rating.</div></div>";
     var main = c.title >= 0.02 ? "title" : (c.top4 >= 0.05 ? "top4" : (c.relegated >= 0.05 ? "relegated" : (c.top4 >= c.relegated ? "top4" : "relegated")));
     $("club-num").textContent = oneIn(c[main]);
     $("club-text").textContent = (main === "title" ? "Champions" : main === "top4" ? "Top four" : "Relegated") + " in " + count(c[main], n) + " of " + n.toLocaleString("en-GB") + " simulated seasons." + (team === "Liverpool" ? " I support them, so I checked twice." : "");
@@ -504,7 +520,6 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
     var rc = m.reconciliation;
     $("run-meta").textContent = "Run " + m.generated_at.replace("T", " ").replace("Z", " UTC") + ". " + m.n_sims.toLocaleString("en-GB") + " seasons, seed " + m.seed + ". Of " + m.matches_played + " results, " + rc.confirmed_by_two_or_more + " are confirmed by two or more sources and " + rc.single_source + " rest on one source so far. " + rc.overruled + " were overruled by a majority.";
     $("method-note").textContent = "Each club's rating is also nudged up or down at random in every season (by about " + m.sigma + " rating points), because a rating is an estimate, not a fact. Without that the model is too sure of itself.";
-    if (document.body.getAttribute("data-preview") === "true") $("preview").classList.remove("hidden");
   }
 
   function tips() {
@@ -531,7 +546,7 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
     function y(v) { var f = (v - lo) / (hi - lo); return flip ? T + f * (H - T - B) : H - B - f * (H - T - B); }
     function fmt(v) { return flip ? ordinal(Math.round(v)) : pct(v); }
     var line = values.map(function (v, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); }).join("");
-    var other = opts.other ? '<path d="' + opts.other.map(function (v, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); }).join("") + '" fill="none" stroke="#B5B1AD" stroke-width="2" stroke-dasharray="4 4"/>' : "";
+    var other = opts.other ? '<path d="' + opts.other.map(function (v, i) { return (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1); }).join("") + '" fill="none" stroke="#7C8296" stroke-width="2" stroke-dasharray="4 4"/>' : "";
     var cur = weeks.map(function (w) { return w.matchweek; }).indexOf(feed.meta.matchweek);
     var hits = values.map(function (v, i) {
       var tipText = "Gameweek " + weeks[i].matchweek + ": " + fmt(v) + (opts.other ? " in the table, model says " + fmt(opts.other[i]) : "") + (weeks[i].reconstructed ? " (rebuilt)" : "");
@@ -539,12 +554,12 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
     }).join("");
     var last = n - 1;
     return '<figure><figcaption><span>' + title + "</span><strong>" + fmt(values[last]) + '</strong></figcaption><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(title + " by Gameweek. Started at " + fmt(values[0]) + ", now " + fmt(values[last]) + ".") + '">' +
-      '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(lo) + '" y2="' + y(lo) + '" stroke="#E4E2E1"/><line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(hi) + '" y2="' + y(hi) + '" stroke="#E4E2E1"/>' +
+      '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(lo) + '" y2="' + y(lo) + '" stroke="#262B40"/><line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(hi) + '" y2="' + y(hi) + '" stroke="#262B40"/>' +
       '<text x="' + (L - 6) + '" y="' + (y(lo) + 4) + '" text-anchor="end">' + fmt(lo) + '</text><text x="' + (L - 6) + '" y="' + (y(hi) + 4) + '" text-anchor="end">' + fmt(hi) + "</text>" +
-      (cur >= 0 && cur !== last ? '<line x1="' + x(cur) + '" x2="' + x(cur) + '" y1="' + T + '" y2="' + (H - B) + '" stroke="#32302F" stroke-dasharray="2 3"/>' : "") +
+      (cur >= 0 && cur !== last ? '<line x1="' + x(cur) + '" x2="' + x(cur) + '" y1="' + T + '" y2="' + (H - B) + '" stroke="#AEB4BF" stroke-dasharray="2 3"/>' : "") +
       other + '<path d="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>' +
-      '<circle cx="' + x(last) + '" cy="' + y(values[last]) + '" r="5" fill="var(--accent)" stroke="#fff" stroke-width="2"/>' +
-      '<text x="' + (x(last) + 9) + '" y="' + (y(values[last]) + 4) + '" style="fill:#32302F;font-weight:600">' + fmt(values[last]) + "</text>" +
+      '<circle cx="' + x(last) + '" cy="' + y(values[last]) + '" r="5" fill="var(--accent)" stroke="#121527" stroke-width="2"/>' +
+      '<text x="' + (x(last) + 9) + '" y="' + (y(values[last]) + 4) + '" style="fill:#F2F3F5;font-weight:600">' + fmt(values[last]) + "</text>" +
       '<text x="' + x(0) + '" y="' + (H - 6) + '" text-anchor="middle">GW' + weeks[0].matchweek + '</text><text x="' + x(last) + '" y="' + (H - 6) + '" text-anchor="middle">GW' + weeks[last].matchweek + "</text>" + hits + "</svg></figure>";
   }
 
