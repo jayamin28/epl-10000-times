@@ -68,6 +68,8 @@ jobs:
             echo "Nothing to save"
           else
             git commit -m "Matchweek ${{ steps.week.outputs.matchweek }}: ${{ steps.week.outputs.played }} results, 10,000 seasons"
+            # a re-run starts from an old checkout; take any newer commits first so the push can land
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}"
             git push
           fi
 
