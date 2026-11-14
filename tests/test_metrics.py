@@ -283,3 +283,25 @@ def test_telemetry_on_the_hand_built_league(res):
     assert (t["matches"], t["goals"], t["distinct_champions"]) == (30, 4, 3)
     assert t["biggest_win"] == {"home": "Cork", "away": "Ajax", "score": "3-0", "season": 10}
     assert t["most_common_score"] == "0-0" and t["seconds"] is None
+
+
+def test_upsets_ranks_the_least_likely_results_of_the_latest_gameweek():
+    forecasts = [
+        {"gameweek": 11, "home": "A", "away": "B", "p_home": 0.70, "p_draw": 0.20, "p_away": 0.10},
+        {"gameweek": 11, "home": "C", "away": "D", "p_home": 0.40, "p_draw": 0.30, "p_away": 0.30},
+        {"gameweek": 11, "home": "E", "away": "F", "p_home": 0.50, "p_draw": 0.25, "p_away": 0.25},
+        {"gameweek": 10, "home": "G", "away": "H", "p_home": 0.90, "p_draw": 0.05, "p_away": 0.05},
+        {"gameweek": 12, "home": "I", "away": "J", "p_home": 0.50, "p_draw": 0.25, "p_away": 0.25},  # not played yet
+    ]
+    results = {("A", "B"): (0, 2), ("C", "D"): (1, 1), ("E", "F"): (3, 0), ("G", "H"): (0, 1)}
+    out = metrics.upsets(forecasts, results)
+    assert out["gameweek"] == 11
+    assert [(r["home"], r["score"], r["outcome"]) for r in out["rows"]] == [("A", "0-2", "away"), ("C", "1-1", "draw"),
+                                                                          ("E", "3-0", "home")]
+    assert out["rows"][0]["p_before"] == 0.10
+    assert metrics.upsets(forecasts, results, gameweek=10)["rows"][0]["p_before"] == 0.05
+
+
+def test_upsets_is_empty_before_any_logged_match_is_played():
+    forecasts = [{"gameweek": 11, "home": "A", "away": "B", "p_home": 0.5, "p_draw": 0.3, "p_away": 0.2}]
+    assert metrics.upsets(forecasts, {}) == {"gameweek": None, "rows": []}

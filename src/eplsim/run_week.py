@@ -185,6 +185,8 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
         "wildest": metrics.wildest_season(snap, res), "convergence": metrics.convergence(res),
         "duel": metrics.duel(snap, res, leaders[0], leaders[1]), "movers": moved,
         "universes": metrics.universes(res), "report_card": card,
+        "upsets": metrics.upsets(log_table[log_table["season"] == season].to_dict("records") if len(log_table) else [],
+                                 known),
     }
     feed = outputs.build_feed(meta, headline, res.position_matrix(), res.teams, sections)
     outputs.write_json(site_dir / "snapshots" / f"mw{matchweek:02d}.json", feed)

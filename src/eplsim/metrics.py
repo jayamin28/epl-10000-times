@@ -314,6 +314,30 @@ def report_card(forecasts: list[dict], results: dict[tuple[str, str], tuple[int,
     return {"matches": n, "log_loss": ll / n, "baseline_log_loss": base_ll / n, "brier": brier / n, "accuracy": right / n}
 
 
+def upsets(forecasts: list[dict], results: dict[tuple[str, str], tuple[int, int]], gameweek: int | None = None,
+           top: int = 3) -> dict:
+    """The played matches whose result the model rated least likely before kick-off.
+
+    Only odds logged before kick-off count, so this is empty until a logged gameweek has been played.
+    `gameweek` picks one gameweek; by default the latest logged gameweek with a result.
+    """
+    played = [f for f in forecasts if (f["home"], f["away"]) in results]
+    if gameweek is None and played:
+        gameweek = max(int(f["gameweek"]) for f in played)
+    rows = []
+    for f in played:
+        if int(f["gameweek"]) != gameweek:
+            continue
+        hg, ag = results[(f["home"], f["away"])]
+        outcome = "home" if hg > ag else "draw" if hg == ag else "away"
+        p = {"home": f["p_home"], "draw": f["p_draw"], "away": f["p_away"]}[outcome]
+        rows.append({"home": f["home"], "away": f["away"], "score": f"{hg}-{ag}", "outcome": outcome,
+                     "p_before": float(p), "p_home": float(f["p_home"]), "p_draw": float(f["p_draw"]),
+                     "p_away": float(f["p_away"])})
+    rows.sort(key=lambda r: (r["p_before"], r["home"]))
+    return {"gameweek": gameweek, "rows": rows[:top]}
+
+
 def telemetry(res: SimResult, seconds: float | None = None, reruns: int = 0) -> dict:
     """What the engine did on this run, in countable things.
 

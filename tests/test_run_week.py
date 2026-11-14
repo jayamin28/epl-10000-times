@@ -55,7 +55,8 @@ def test_first_run_publishes(week):
 
 def test_feed_has_every_section_the_page_draws(feed):
     assert set(feed) == {"meta", "clubs", "matrix", "tiers", "table_lies", "magic_numbers", "points_shape", "run_in",
-                         "next", "swings", "wildest", "convergence", "duel", "movers", "universes", "report_card"}
+                         "next", "swings", "wildest", "convergence", "duel", "movers", "universes", "report_card",
+                         "upsets"}
     meta = feed["meta"]
     assert (meta["season"], meta["matchweek"], meta["matches_played"], meta["matches_remaining"]) == ("2026-27", 10, 100, 280)
     assert (meta["n_sims"], meta["seed"], meta["sigma"]) == (SIMS, config.SEED, config.SIGMA)
@@ -129,6 +130,7 @@ def test_forecast_log_holds_next_weeks_odds(week, feed):
     assert (log[["p_home", "p_draw", "p_away"]].sum(axis=1) - 1).abs().max() < 1e-6
     assert set(zip(log["home"], log["away"])) == {(f["home"], f["away"]) for f in feed["next"]["fixtures"]}
     assert feed["report_card"] == {"matches": 0}  # nothing forecast before kick-off has been played yet
+    assert feed["upsets"] == {"gameweek": None, "rows": []}
 
 
 def test_swings_cover_every_fixture_of_the_next_gameweek(feed):
