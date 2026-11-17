@@ -63,3 +63,7 @@ Analysis for fun. Not betting advice.
 ## Working with an AI agent
 
 The pipeline itself is plain, deterministic code: no AI touches a published number. [AGENTS.md](AGENTS.md) explains where an AI agent does help: changing the code through tested commits, and the `weekly-post` agent that drafts each week's post from a fact sheet and checks every number in the draft against it before a person reviews it.
+
+## Licence
+
+The code and documentation are under the [MIT licence](LICENSE). The match data in `data/` is not mine to license: each source keeps its own terms, listed in [data/NOTICE.md](data/NOTICE.md).
