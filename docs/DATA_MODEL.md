@@ -9,8 +9,14 @@ One snapshot = one run of the model on one state of the results. Its key is `(se
 ```
 snapshots ─┬─< history         (one row per club)
            ├─< position_dist   (one row per club per final place)
+           ├─< points_dist     (one row per club per final points total)
            └─< forecast_log    (one row per fixture, live runs only)
+
+clubs ──< matches ──< match_ratings    (dimensions and match facts, every season on file)
+gameweeks ── points to the snapshot that stands for each gameweek
 ```
+
+Join on `team` (or `home` / `away`) for clubs, `(season, gameweek)` for gameweeks, `(season, matches_played)` for snapshots.
 
 ## Tables
 
@@ -54,6 +60,38 @@ Key: `(season, matches_played, team, place)`.
 Live runs only. A rebuilt snapshot never writes here, because odds made after the match are not a forecast. Used to score the model in public.
 
 Key: `(season, home, away)`. The latest odds before kick-off win.
+
+### `points_dist.parquet`: one row per club per final points total per run
+
+`share` is the fraction of the 10,000 seasons in which `team` finished on `points`. Only totals that happened are stored, so each club's rows sum to 1 and `sum(points * share)` equals `history.exp_pts`. Runs made before this table existed were filled by simulating them again; a run is filled only when the new simulation reproduces its stored `position_dist` exactly, so the rows come from the same 10,000 seasons.
+
+Key: `(season, matches_played, team, points)`.
+
+### `matches.parquet`: one row per fixture, every season on file
+
+`gameweek`, `date`, `home`, `away`, `home_code`, `away_code`, `home_goals`, `away_goals`, `result` (H, D or A), `ht_home_goals`, `ht_away_goals` (half-time, where openfootball has it), `status` (played, unplayed, postponed), `sources_backing` (how many sources gave the kept score), `sources`, `overruled` (a source was outvoted). Seasons before 2025-26 come from one source, openfootball. Rewritten whole on each live run.
+
+Key: `(season, home, away)`.
+
+### `match_ratings.parquet`: one row per played match
+
+Both clubs' rating before and after the match, the change, the expected home score from the ratings, and `order`, the order the ratings walk processed the match. The same walk the model runs, so a club's rating after its last match of a gameweek equals `history.elo` for that gameweek.
+
+Key: `(season, home, away)`.
+
+### `clubs.parquet`: one row per club in the data
+
+`code`, colours (`own_colours` is false for past clubs, which get a neutral badge), `colours_verified`, `seasons_on_file`, `first_season`, `in_current_season`, `promoted_this_season`.
+
+Key: `team`.
+
+### `gameweeks.parquet`: one row per season per gameweek
+
+`first_date`, `last_date`, `fixtures`, `played`, `postponed`, `status` (complete, in progress, upcoming), and for this season `snapshot_matches_played` and `snapshot_reconstructed`: the stored run that stands for the gameweek.
+
+Key: `(season, gameweek)`.
+
+The forecast log also carries `home_xg`, `away_xg`, `home_elo` and `away_elo` from 17 Nov 2026: the expected goals and the ratings behind each set of odds.
 
 ### Also written
 

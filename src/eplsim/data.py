@@ -125,7 +125,8 @@ def reconcile(sources: dict[str, list[Match]]) -> tuple[list[Match], dict]:
     idx = {n: season_keys(ms) for n, ms in sources.items()}
     primary = sources[names[0]]
     out: list[Match] = []
-    report = {"agreed": 0, "single_source": [], "overruled": [], "unplayed": 0, "awaiting_second_source": []}
+    report = {"agreed": 0, "single_source": [], "overruled": [], "unplayed": 0, "awaiting_second_source": [],
+              "backers": {}}  # backers: which sources gave the kept score, per fixture (for the dashboard tables)
     for m in primary:
         key = (m.home, m.away)
         votes: dict[tuple[int, int], list[str]] = {}
@@ -144,6 +145,7 @@ def reconcile(sources: dict[str, list[Match]]) -> tuple[list[Match], dict]:
         if len(ranked) > 1 and len(ranked[0][1]) == len(ranked[1][1]):
             raise ValueError(f"Sources disagree with no majority on {key}: {votes}")
         score, backers = ranked[0]
+        report["backers"][key] = list(backers)
         if len(ranked) > 1:
             report["overruled"].append({"fixture": key, "kept": score, "kept_from": backers,
                                         "rejected": {str(s): b for s, b in ranked[1:]}})

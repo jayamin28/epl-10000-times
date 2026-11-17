@@ -120,10 +120,14 @@ def timeline(history: pd.DataFrame, season: str) -> dict:
     return round_floats(out)
 
 
-def forecast_rows(meta: dict, upcoming: dict) -> list[dict]:
+def forecast_rows(meta: dict, upcoming: dict, ratings: dict[str, float] | None = None) -> list[dict]:
+    """The odds for each upcoming fixture, with the expected goals and both ratings they came from."""
+    r = ratings or {}
     return [{"season": meta["season"], "gameweek": upcoming["gameweek"], "date": f["date"], "home": f["home"],
              "away": f["away"], "p_home": f["home_win"], "p_draw": f["draw"], "p_away": f["away_win"],
-             "logged_at": meta["generated_at"], "data_through": meta["data_through"]}
+             "logged_at": meta["generated_at"], "data_through": meta["data_through"],
+             "home_xg": f.get("home_xg"), "away_xg": f.get("away_xg"),
+             "home_elo": r.get(f["home"]), "away_elo": r.get(f["away"])}
             for f in upcoming["fixtures"]]
 
 

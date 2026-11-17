@@ -32,7 +32,7 @@ from pathlib import Path
 
 import numpy as np
 
-from . import clubs, config, fetch, gates, metrics, outputs, pipeline
+from . import clubs, config, fetch, gates, metrics, outputs, pipeline, tables
 from .data import league_table
 
 
@@ -163,9 +163,11 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
 
     outputs.upsert(out_dir / "position_dist.parquet", outputs.position_rows(meta, res.position_matrix(), res.teams),
                    key=["season", "matches_played", "team", "place"], sort=["season", "matches_played", "team", "place"])
+    outputs.upsert(out_dir / "points_dist.parquet", tables.points_rows(meta, res.points, res.teams),
+                   key=tables.POINTS_KEY, sort=tables.POINTS_KEY)
     log_path = out_dir / "forecast_log.parquet"
     if as_of is None:  # only odds given before kick-off belong in the log
-        log_table = outputs.upsert(log_path, outputs.forecast_rows(meta, nxt),
+        log_table = outputs.upsert(log_path, outputs.forecast_rows(meta, nxt, snap.ratings),
                                    key=["season", "home", "away"], sort=["season", "gameweek", "date", "home"])
     else:
         import pandas as pd
@@ -196,6 +198,7 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
         return {"changed": True, "matches_played": played, "matchweek": matchweek, "feed": feed}
     outputs.write_json(site_dir / "feed.json", feed)
     outputs.write_seasons(out_dir / "seasons_latest.parquet", res)
+    write_dashboard_tables(data_dir, out_dir, current_dir, matches, report, postponed)
     if archive:
         outputs.write_seasons(out_dir / "archive" / f"seasons_{archive}.parquet", res)
         outputs.write_json(out_dir / "archive" / f"feed_{archive}.json", feed)
@@ -207,6 +210,85 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     log(f"published matchweek {matchweek}: {played} played, {len(snap.remaining)} simulated. "
         f"Favourite {max(headline, key=lambda r: r['title'])['team']}, top of expected points {top['team']} {top['exp_pts']:.1f}")
     return {"changed": True, "matches_played": played, "matchweek": matchweek, "feed": feed}
+
+
+def write_dashboard_tables(data_dir: Path, out_dir: Path, current_dir: Path, matches, reports: dict, postponed: set) -> None:
+    """The match, rating, club and gameweek tables. Derived only: nothing the model or the page reads."""
+    import pandas as pd
+    season = pipeline.CURRENT
+    hist = Path(data_dir) / "history" / "openfootball"
+    ht = tables.half_times([hist / f"{s}.json" for s in pipeline.SEASONS[:-1]] +
+                           [Path(current_dir) / "openfootball" / f"{season}.json"])
+    snaps_path = Path(out_dir) / "snapshots.parquet"
+    snaps = pd.read_parquet(snaps_path) if snaps_path.exists() else None
+    tables.write(Path(out_dir) / "matches.parquet", tables.matches_frame(matches, reports, ht, postponed, season))
+    tables.write(Path(out_dir) / "match_ratings.parquet", tables.match_ratings_frame(matches, config.ELO))
+    tables.write(Path(out_dir) / "clubs.parquet", tables.clubs_frame(matches, pipeline.SEASONS, season))
+    tables.write(Path(out_dir) / "gameweeks.parquet", tables.gameweeks_frame(matches, snaps, postponed, season))
+
+
+def _settings_meta(n_sims: int) -> dict:
+    return {"n_sims": n_sims, "seed": config.SEED, "sigma": config.SIGMA,
+            "elo": {"k": config.ELO.k, "home_bonus": config.ELO.hfa, "promoted": config.ELO.promoted},
+            "goals_window_seasons": config.GOALS_WINDOW}
+
+
+def fill_points(data_dir: Path, out_dir: Path, current_dir: Path | None = None, log=print) -> list[int]:
+    """Add `points_dist` rows for stored runs that have none, writing to that table only.
+
+    Each run is simulated again from the results it saw. Its rows are written
+    only if the new simulation reproduces that run's stored `position_dist`
+    exactly, which proves they come from the same 10,000 seasons. A run that
+    cannot be reproduced (other settings, or results that arrived later) is
+    skipped and logged, never guessed.
+    """
+    import pandas as pd
+    out_dir = Path(out_dir)
+    snaps_path, pos_path, pts_path = (out_dir / f for f in ("snapshots.parquet", "position_dist.parquet", "points_dist.parquet"))
+    if not (snaps_path.exists() and pos_path.exists()):
+        return []
+    season = pipeline.CURRENT
+    snaps = pd.read_parquet(snaps_path)
+    snaps = snaps[snaps["season"] == season].sort_values("matches_played")
+    have = set()
+    if pts_path.exists():
+        p = pd.read_parquet(pts_path, columns=["season", "matches_played"])
+        have = set(p.loc[p["season"] == season, "matches_played"].astype(int))
+    todo = [r for r in snaps.to_dict("records") if int(r["matches_played"]) not in have]
+    if not todo:
+        return []
+    pos = pd.read_parquet(pos_path)
+    cur = Path(current_dir) if current_dir else Path(data_dir) / "current"
+    matches = pipeline.load_all(data_dir, current_dir=cur)
+    filled = []
+    for r in todo:
+        mp, mw = int(r["matches_played"]), int(r["matchweek"])
+        if r["model_version"] != outputs.model_version(_settings_meta(int(r["n_sims"]))):
+            log(f"points_dist: run {mp} made with other settings, skipped")
+            continue
+        seen = None
+        for mask in (lambda m: m.gameweek > mw, lambda m: m.date > str(r["data_through"])):
+            trial = [replace(m, home_goals=None, away_goals=None) if m.season == season and mask(m) else m for m in matches]
+            if sum(m.played for m in trial if m.season == season) == mp:
+                seen = trial
+                break
+        if seen is None:
+            log(f"points_dist: cannot rebuild the results run {mp} saw, skipped")
+            continue
+        snap = pipeline.snapshot(seen, config.ELO, config.GOALS_WINDOW)
+        res = pipeline.run_sim(snap, n_sims=int(r["n_sims"]), sigma=config.SIGMA, seed=config.SEED)
+        stored = (pos[(pos["season"] == season) & (pos["matches_played"] == mp)]
+                  .pivot(index="team", columns="place", values="share").reindex(res.teams).to_numpy())
+        if stored.shape != res.position_matrix().shape or not np.array_equal(stored, res.position_matrix()):
+            log(f"points_dist: run {mp} did not reproduce its stored places, skipped")
+            continue
+        outputs.upsert(pts_path, tables.points_rows({"season": season, "matches_played": mp, "matchweek": mw},
+                                                    res.points, res.teams),
+                       key=tables.POINTS_KEY, sort=tables.POINTS_KEY)
+        filled.append(mp)
+    if filled:
+        log(f"points_dist: filled runs {', '.join(map(str, filled))}, each reproduced exactly")
+    return filled
 
 
 def finished_matchweeks(matches, season: str = pipeline.CURRENT, postponed=frozenset()) -> list[int]:
@@ -271,6 +353,8 @@ def main(argv: list[str] | None = None) -> int:
         if rebuilt:
             print(f"rebuilt matchweeks {', '.join(map(str, rebuilt))}")
             out = run(Path(a.data), Path(a.out), Path(a.site), do_fetch=False, force=True, archive=a.archive, **common)
+        if a.as_of is None:
+            fill_points(Path(a.data), Path(a.out), current_dir=a.current)
     except gates.GateError as e:
         print(f"STOPPED by a gate, nothing published: {e}", file=sys.stderr)
         return 2
