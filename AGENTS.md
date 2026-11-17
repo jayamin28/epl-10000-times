@@ -4,25 +4,24 @@ This file is for any AI coding agent (Claude Code, Codex, Cursor and others) ope
 
 ## The one rule
 
-**The numbers are made by code, never by the agent.** The weekly pipeline is plain, deterministic Python, started when a gameweek ends: same data in, same answer out, every time. An agent may change that code through a normal commit with passing tests. It never writes, edits or estimates a published number by hand.
+**The numbers are made by code, never by the agent.** The daily pipeline is plain, deterministic Python on a schedule: same data in, same answer out, every time. An agent may change that code through a normal commit with passing tests. It never writes, edits or estimates a published number by hand.
 
 Where an agent does help:
 
 | Job | Who does it |
 |---|---|
-| Fetch, check, rate, simulate, publish (once each gameweek is over) | The pipeline in `src/eplsim`, run by `.github/workflows/weekly.yml`. No AI involved. |
+| Fetch, check, rate, simulate, publish (every morning) | The pipeline in `src/eplsim`, run by `.github/workflows/weekly.yml`. No AI involved. |
 | Building and changing that pipeline | A person with an AI coding agent, through commits, tests and review |
 | Turning each week's run into a post: angles, words, a number check | The `weekly-post` agent (`.claude/agents/weekly-post.md`), with a person approving before anything is posted |
 
 ## How the pipeline runs
 
-1. Twice a day (07:41 and 23:41 UTC) a check reads the fixture list (`src/eplsim/trigger.py`, standard library only). If no gameweek has ended since the last publish, or the official feed has not closed it yet, stop. Otherwise start the full run.
-2. Run the tests. Any failure stops the run.
-3. Fetch this season's results from three sources: the official FPL feed (with a public mirror as fallback), FPL-Elo-Insights and openfootball (`src/eplsim/fetch.py`).
-4. Keep a result only when at least two sources agree (`data.reconcile`).
-5. Gates (`src/eplsim/gates.py`): complete fixture list, two of three sources reachable, no overdue results, no results vanished. A failure stops the run and the last good page stays up.
-6. No new results: stop. Otherwise rebuild any finished gameweek that has no snapshot, then rate every club (Elo since 2010), fit the goals model, play the rest of the season 10,000 times with seed 2026, and count.
-7. Save a snapshot, commit, deploy the page.
+1. Wake at 07:00 UTC, run the tests. Any failure stops the run.
+2. Fetch this season's results from three sources: the official FPL feed (with a public mirror as fallback), FPL-Elo-Insights and openfootball (`src/eplsim/fetch.py`).
+3. Keep a result only when at least two sources agree (`data.reconcile`).
+4. Gates (`src/eplsim/gates.py`): complete fixture list, two of three sources reachable, no overdue results, no results vanished. A failure stops the run and the last good page stays up.
+5. No new results: stop. Otherwise rebuild any finished gameweek that has no snapshot, then rate every club (Elo since 2010), fit the goals model, play the rest of the season 10,000 times with seed 2026, and count.
+6. Save a snapshot, commit, deploy the page.
 
 The data model is in `docs/DATA_MODEL.md`. The challenges met on the way are in `CHALLENGES.md`.
 
@@ -35,7 +34,6 @@ PYTHONPATH=src python -m eplsim.run_week --offline --force   # rerun from the fi
 PYTHONPATH=src python -m eplsim.run_week --as-of 7            # the picture as it stood after Gameweek 7
 PYTHONPATH=src python -m eplsim.post_facts                    # this week's fact sheet for posts
 PYTHONPATH=src python -m eplsim.post_facts --check draft.md   # fail if a draft uses a number not on the sheet
-PYTHONPATH=src python -m eplsim.trigger --calendar           # when each gameweek still to come should be over
 ```
 
 ## Rules for changing code

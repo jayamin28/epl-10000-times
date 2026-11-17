@@ -36,8 +36,6 @@ A build log for [The Premier League, 10,000 times](README.md). Every entry is so
 
 **I was wrong about the noise.** I assumed two runs on the same data would differ by about 1 percentage point. Measured over 30 runs it is closer to 1.3, with gaps over 2 between the luckiest and unluckiest run. The rule on the page: a change under 3 points is not news.
 
-**It ran every morning, mostly for nothing.** The run woke at 07:00 UTC every day, installed everything, ran every test and downloaded three sources, then usually found no new result. In the international break that was four mornings out of four, 76 to 114 seconds each, and GitHub's scheduler started those runs 7 to 10 hours late anyway. Results only matter to this model once a gameweek is over. Now a check that needs no install reads the fixture list twice a day and starts the full run only when a gameweek has ended and the official feed has closed it. For the rest of this season that is 28 full runs instead of 195. Check: `tests/test_trigger.py`.
-
 **A test suite that had never failed.** The first full run passed. A suite that has never failed has proved nothing. I injected deliberate bugs one at a time: an away win worth 2 points, a minority source winning a vote, relegation counting the bottom two. Planning them exposed one test that would have let a real bug through. It was fixed first. All 17 are now caught.
 
 **Seven of twenty clubs are red.** The page uses club-colour discs instead of crests. Seven clubs are red, so colour alone cannot tell them apart. The three-letter code carries identity and colour supports it.
