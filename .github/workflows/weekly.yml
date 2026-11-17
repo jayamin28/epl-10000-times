@@ -1,12 +1,16 @@
 name: weekly
 
-# Every morning: fetch results, check them, and if a new result has arrived,
-# simulate 10,000 seasons and publish the page. A failed check stops the run,
-# leaves the last good page up, and GitHub emails the repository owner.
+# Runs when a gameweek has finished, not on a clock. Twice a day a small
+# check (standard library only, no install) reads the fixture list. While a
+# gameweek is still being played, or during an international break, it stops
+# there. Once the last match of a gameweek is over and the official feed has
+# closed it, the full run starts: tests, fetch three sources, check them,
+# simulate 10,000 seasons, publish. A failed check stops the run, leaves the
+# last good page up, and GitHub emails the repository owner.
 
 on:
   schedule:
-    - cron: "0 7 * * *"   # 07:00 UTC daily
+    - cron: "41 7,23 * * *"   # checks only, 07:41 and 23:41 UTC; the full run starts when a gameweek is over
   workflow_dispatch:
     inputs:
       force:
@@ -32,7 +36,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      due: ${{ steps.trigger.outputs.due }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: |
+            src
+            data/current/fpl
+            data/postponed.json
+            outputs/run_meta.json
+          sparse-checkout-cone-mode: false
+
+      - name: Is a gameweek over?
+        id: trigger
+        env:
+          PYTHONPATH: src
+        run: python3 -m eplsim.trigger
+
   run:
+    needs: check
+    if: needs.check.outputs.due == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:

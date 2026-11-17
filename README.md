@@ -30,7 +30,7 @@ PYTHONPATH=src python -m eplsim.run_week      # fetch, check, simulate, write ou
 | `outputs/history.parquet` | Headline odds per club, per matchweek |
 | `outputs/forecast_log.parquet` | Match odds logged before kick-off, scored later |
 
-A scheduled GitHub Action runs this every morning. It publishes only when a new result has arrived and every check passes.
+A GitHub Action runs this once a gameweek is over, not every morning. Twice a day a check that takes seconds reads the fixture list. While a gameweek is still being played, or during an international break, it stops there. When the last match is over and the official feed has closed the gameweek, the full run starts. It publishes only when every check passes. `python -m eplsim.trigger --calendar` lists when each gameweek still to come should be over.
 
 ## Checks before anything is published
 
