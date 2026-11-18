@@ -200,3 +200,35 @@ def test_a_rerun_in_the_same_gameweek_overwrites_it(built, data_dir, frozen_dir)
 
 def test_past_club_codes_follow_the_league():
     assert tables.code("Blackpool") == "BLP" and tables.code("Reading") == "RDG" and tables.code("Liverpool") == "LIV"
+
+
+def _unpack(site, n, team):
+    k = len(site["teams"]); j = site["teams"].index(team); at = (n - 1) * k + j
+    return ord(site["place"][at]) - 64, int(site["points"][2 * at:2 * at + 2], 36)
+
+
+def test_page_universe_file_unpacks_to_the_same_places_and_points(built):
+    import json
+    u = pd.read_parquet(built["out"] / "universes" / SEASON / "gw10.parquet")
+    site = json.loads((built["base"] / "site" / "universes" / SEASON / "gw10.json").read_text())
+    assert site["n_sims"] == SIMS and site["matchweek"] == 10 and len(site["place"]) == SIMS * 20 == len(site["points"]) // 2
+    rows = u.set_index(["universe", "team"])
+    for n in (1, 777, SIMS):
+        for team in site["teams"]:
+            assert _unpack(site, n, team) == (rows.loc[(n, team), "place"], rows.loc[(n, team), "points"])
+    idx = json.loads((built["base"] / "site" / "universes" / "index.json").read_text())
+    assert idx == {"season": SEASON, "weeks": [{"matchweek": 10, "matches_played": 100, "file": f"universes/{SEASON}/gw10.json"}]}
+
+
+def test_packing_refuses_rows_that_do_not_cover_every_club(built):
+    u = pd.read_parquet(built["out"] / "universes" / SEASON / "gw10.parquet")
+    teams = sorted(u.team.unique())
+    with pytest.raises(ValueError):
+        tables.site_universes(u[u.team != "Arsenal"], teams)
+
+
+def test_workflow_commits_the_page_universe_files():
+    from pathlib import Path
+    wf = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "weekly.yml").read_text()
+    add = [line for line in wf.splitlines() if "git add" in line][0]
+    assert "site/universes" in add and "outputs" in add

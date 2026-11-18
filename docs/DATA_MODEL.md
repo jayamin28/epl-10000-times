@@ -99,6 +99,8 @@ Universe numbers only mean the same season within one gameweek. The next gamewee
 
 Key: `(season, matchweek, universe, team)`.
 
+For the page, each live run also writes `site/universes/<season>/gwNN.json` (the same gameweek, packed: `place` is one letter per club per universe, A = 1st to T = 20th; `points` is two base-36 digits per club per universe; clubs in `teams` order; universe n starts at (n - 1) x 20) and `site/universes/index.json`, the list of gameweeks the page can offer. The page's universe picker reads them.
+
 The forecast log also carries `home_xg`, `away_xg`, `home_elo` and `away_elo` from 17 Nov 2026: the expected goals and the ratings behind each set of odds.
 
 ### Also written

@@ -242,9 +242,9 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
 
   <section aria-labelledby="h-uni">
     <div class="sec-head"><h2 id="h-uni">Open one of the 10,000 seasons</h2>
-      <p class="why">Every simulated season has a number. Pick one and see how it ended. Same number, same season, every time, until the next Gameweek changes the data.</p></div>
+      <p class="why">Every simulated season has a number. Pick a gameweek and a number to see how that season ended, and where your club finished. A number only means the same season within one gameweek: after the next gameweek, season 2,026 is a different season.</p></div>
     <div class="card" style="display:flex;flex-direction:column;gap:14px">
-      <form class="picker" id="uni-form"><label for="uni-n">Season</label><input id="uni-n" type="number" min="1" max="10000" value="2026" inputmode="numeric" style="width:120px"><button type="submit">Open</button><button type="button" class="ghost" id="uni-rand">Surprise me</button></form>
+      <form class="picker" id="uni-form"><label for="uni-gw">After</label><select id="uni-gw"></select><label for="uni-n">Season</label><input id="uni-n" type="number" min="1" max="10000" value="2026" inputmode="numeric" style="width:120px"><button type="submit">Open</button><button type="button" class="ghost" id="uni-rand">Surprise me</button></form>
       <div id="uni-out" aria-live="polite"></div>
     </div>
     <div class="card" id="wild"></div>
@@ -371,7 +371,7 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
       var o = document.createElement("option"); o.value = t; o.textContent = t; sel.appendChild(o);
     });
     sel.value = byTeam[saved] ? saved : "Liverpool";
-    sel.addEventListener("change", function () { try { localStorage.setItem("epl10k-club", sel.value); } catch (e) {} renderMatrix(); renderClub(); });
+    sel.addEventListener("change", function () { try { localStorage.setItem("epl10k-club", sel.value); } catch (e) {} renderMatrix(); renderClub(); openUniverse(Number($("uni-n").value)); });
   }
 
   function renderClub() {
@@ -481,22 +481,65 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
     $("magic").innerHTML = Object.keys(names).filter(function (k) { return m[k]; }).map(function (k) { return tile(names[k], m[k].mode, "Usually " + m[k].p10 + " to " + m[k].p90 + " points"); }).join("");
   }
 
+  var uni = { index: null, indexLoaded: false, weeks: {} };
+
+  function uniWeek(w) {
+    // Champion and relegated clubs come from that gameweek's snapshot (every week);
+    // every club's finish comes from the universe file (saved from Gameweek 10 on).
+    if (uni.weeks[w]) return Promise.resolve(uni.weeks[w]);
+    var base = w === feed.meta.matchweek ? Promise.resolve(feed)
+      : getJson(w === latestMw ? "feed.json" : "snapshots/mw" + ("0" + w).slice(-2) + ".json");
+    var entry = uni.index ? uni.index.weeks.filter(function (x) { return x.matchweek === w; })[0] : null;
+    var full = entry ? getJson(entry.file).catch(function () { return null; }) : Promise.resolve(null);
+    return Promise.all([base, full]).then(function (r) {
+      var d = { universes: r[0].universes, full: r[1] };
+      if (uni.indexLoaded) uni.weeks[w] = d;
+      return d;
+    });
+  }
+
   function openUniverse(n) {
-    var u = feed.universes, max = u.champion.length;
+    var w = Number($("uni-gw").value) || feed.meta.matchweek;
+    uniWeek(w).then(function (d) { showUniverse(d, w, n); })
+      .catch(function () { $("uni-out").innerHTML = '<p class="muted">That gameweek could not be loaded. Try again in a minute.</p>'; });
+  }
+
+  function showUniverse(d, w, n) {
+    var u = d.universes, max = u.champion.length;
     if (!(n >= 1 && n <= max) || Math.floor(n) !== n) { $("uni-out").innerHTML = '<p class="muted">Pick a whole number from 1 to ' + max.toLocaleString("en-GB") + ".</p>"; return; }
     var champ = u.teams[u.champion.charCodeAt(n - 1) - 65];
     var down = [0, 1, 2].map(function (k) { return u.teams[u.relegated.charCodeAt(3 * (n - 1) + k) - 65]; });
-    $("uni-out").innerHTML = '<div class="list"><div><span class="muted">Season ' + n.toLocaleString("en-GB") + ": champions</span><strong>" + club(champ) + '</strong></div><div><span class="muted">Relegated</span><span style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end">' + down.map(club).join("") + '</span></div><div><span class="muted">How often ' + esc(champ) + ' win it</span><span class="num">' + pct(byTeam[champ].title) + "</span></div></div>";
+    var code = u.champion.charCodeAt(n - 1), wins = 0;
+    for (var i = 0; i < max; i++) if (u.champion.charCodeAt(i) === code) wins++;
+    var team = $("pick").value, mine = null;
+    if (d.full) {
+      var k = d.full.teams.length, j = d.full.teams.indexOf(team), at = (n - 1) * k + j;
+      if (j >= 0) mine = ordinal(d.full.place.charCodeAt(at) - 64) + " on " + parseInt(d.full.points.substr(2 * at, 2), 36) + " points";
+    }
+    var first = uni.index && uni.index.weeks.length ? uni.index.weeks[0].matchweek : null;
+    var mineText = mine || (first !== null && w < first ? "Saved from Gameweek " + first + " on" : "Not saved for this gameweek");
+    $("uni-out").innerHTML = '<div class="list"><div><span class="muted">Season ' + n.toLocaleString("en-GB") + " after Gameweek " + w + ": champions</span><strong>" + club(champ) + '</strong></div><div><span class="muted">Relegated</span><span style="display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-end">' + down.map(club).join("") +
+      '</span></div><div id="uni-mine"><span class="muted">Where ' + esc(team) + " finished</span><span class=\"num\">" + mineText + '</span></div><div><span class="muted">How often ' + esc(champ) + " win it after Gameweek " + w + '</span><span class="num">' + (wins / max < 0.001 ? "<0.1%" : pct(wins / max)) + "</span></div></div>";
   }
 
   function renderUniverse() {
-    var max = feed.universes.champion.length, input = $("uni-n");
-    input.max = max;
+    var input = $("uni-n"), sel = $("uni-gw");
+    input.max = feed.universes.champion.length;
+    if (!sel.options.length) {
+      var weeks = hist ? hist.matchweeks.map(function (x) { return x.matchweek; }) : [feed.meta.matchweek];
+      weeks.slice().sort(function (a, b) { return b - a; }).forEach(function (w) {
+        var o = document.createElement("option"); o.value = w; o.textContent = "Gameweek " + w; sel.appendChild(o);
+      });
+    }
+    sel.value = feed.meta.matchweek;
     if (!wired) {
       $("uni-form").addEventListener("submit", function (e) { e.preventDefault(); openUniverse(Number(input.value)); });
-      $("uni-rand").addEventListener("click", function () { input.value = 1 + Math.floor(Math.random() * feed.universes.champion.length); openUniverse(Number(input.value)); });
+      $("uni-rand").addEventListener("click", function () { input.value = 1 + Math.floor(Math.random() * Number(input.max)); openUniverse(Number(input.value)); });
+      sel.addEventListener("change", function () { openUniverse(Math.min(Number(input.value), Number(input.max))); });
+      getJson("universes/index.json").then(function (j) { uni.index = j; }).catch(function () { uni.index = null; })
+        .then(function () { uni.indexLoaded = true; uni.weeks = {}; openUniverse(Math.min(Number(input.value), Number(input.max))); });
     }
-    openUniverse(Math.min(Number(input.value), max));
+    openUniverse(Math.min(Number(input.value), Number(input.max)));
     var w = feed.wildest, r = w.rest_of_season;
     $("wild").innerHTML = '<div style="display:flex;flex-direction:column;gap:8px"><div class="muted small">The strangest season of the ' + feed.meta.n_sims.toLocaleString("en-GB") + "</div><h3>" + club(w.champion) + '<span class="muted" style="font-weight:400"> win the league in season ' + w.season.toLocaleString("en-GB") + "</span></h3><p>" + esc(w.champion) + " are " + ordinal(w.champion_table_pos_now) + " today on " + w.champion_pts_now + " points. In this one season they went " + r.won + " wins, " + r.drawn + " draws and " + r.lost + " defeats the rest of the way, finished on " + w.champion_pts + " points and took the title by " + w.margin + ". It happened " + (w.title_seasons === 1 ? "once" : w.title_seasons + " times") + " in " + feed.meta.n_sims.toLocaleString("en-GB") + ".</p></div>";
   }

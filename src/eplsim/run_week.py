@@ -199,7 +199,11 @@ def run(data_dir: Path, out_dir: Path, site_dir: Path, current_dir: Path | None 
     outputs.write_json(site_dir / "feed.json", feed)
     outputs.write_seasons(out_dir / "seasons_latest.parquet", res)
     write_dashboard_tables(data_dir, out_dir, current_dir, matches, report, postponed)
-    tables.write(tables.universes_path(out_dir, meta["season"], meta["matchweek"]), tables.universes_frame(meta, res))
+    uni = tables.universes_frame(meta, res)
+    tables.write(tables.universes_path(out_dir, meta["season"], meta["matchweek"]), uni)
+    outputs.write_json(site_dir / "universes" / meta["season"] / f"gw{meta['matchweek']:02d}.json",
+                       tables.site_universes(uni, res.teams))
+    outputs.write_json(site_dir / "universes" / "index.json", tables.site_universe_index(site_dir, meta["season"]))
     if archive:
         outputs.write_seasons(out_dir / "archive" / f"seasons_{archive}.parquet", res)
         outputs.write_json(out_dir / "archive" / f"feed_{archive}.json", feed)

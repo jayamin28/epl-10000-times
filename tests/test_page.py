@@ -94,3 +94,53 @@ def test_every_club_colour_reads_on_the_dark_page(server, browser):
             failures.append((t, accent, ink, "chip text"))
     assert failures == []
     page.close()
+
+
+@pytest.fixture(scope="module")
+def site_with_universes(tmp_path_factory):
+    """A copy of the site plus a page universe file built from the committed universes table."""
+    import json
+    import shutil
+    import pandas as pd
+    from eplsim import tables
+    root = tmp_path_factory.mktemp("site")
+    shutil.copytree(SITE, root, dirs_exist_ok=True)
+    src = Path(__file__).resolve().parents[1] / "outputs" / "universes" / "2026-27" / "gw10.parquet"
+    if not src.exists():
+        pytest.skip("no universes table committed yet")
+    u = pd.read_parquet(src)
+    teams = json.loads((root / "feed.json").read_text())["matrix"]["teams"]
+    out = root / "universes" / "2026-27"
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "gw10.json").write_text(json.dumps(tables.site_universes(u, teams)))
+    (root / "universes" / "index.json").write_text(json.dumps(tables.site_universe_index(root, "2026-27")))
+    return root, u
+
+
+def test_universe_picker_shows_where_your_club_finished(browser, site_with_universes):
+    root, u = site_with_universes
+
+    class Quiet(http.server.SimpleHTTPRequestHandler):
+        def log_message(self, *a):
+            pass
+
+    httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Quiet, directory=str(root)))
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    url = f"http://127.0.0.1:{httpd.server_address[1]}/"
+    try:
+        page, errors = open_page(browser, url, 1280)
+        page.wait_for_selector("#uni-gw option", state="attached")
+        page.select_option("#pick", "Liverpool")
+        page.fill("#uni-n", "2324")
+        page.click("#uni-form button[type=submit]")
+        page.wait_for_function("document.querySelector('#uni-mine') && /points/.test(document.querySelector('#uni-mine').textContent)")
+        row = u[(u.universe == 2324) & (u.team == "Liverpool")].iloc[0]
+        text = page.text_content("#uni-mine")
+        assert f"{int(row.points)} points" in text and "Where Liverpool finished" in text
+        assert "after Gameweek 10" in page.text_content("#uni-out")
+        page.select_option("#uni-gw", "5")
+        page.wait_for_function("/Saved from Gameweek 10 on/.test(document.querySelector('#uni-mine').textContent)")
+        assert "after Gameweek 5" in page.text_content("#uni-out")
+        assert not errors, errors
+    finally:
+        httpd.shutdown()

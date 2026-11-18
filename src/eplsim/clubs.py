@@ -4,8 +4,14 @@ Badges are plain discs: primary colour fill, secondary colour ring. No crest
 artwork is used anywhere in this project. Colour never identifies a club on
 its own (seven of the twenty are red), so the code always sits beside it.
 
-Colours are close matches to each club's own palette. `verified` is False
-until a value has been checked against the club's published colours.
+Colours: Team Color Codes (teamcolorcodes.com, Jay's chosen source, checked
+18 Nov 2026). Seventeen clubs are on it and match the values below, after one
+change (Coventry's sky blue). Brentford, Ipswich and Sunderland have no page
+there, so their values stay as before. Where the source lists only crest
+colours, the kit colour stays (Fulham and Leeds play in white). Two pairs share
+kit colours and stay close: Brentford and Nottingham Forest (red and white),
+Bournemouth and Sunderland (red and black). The code tells them apart.
+`COLOURS_VERIFIED` stays False until the three missing clubs are checked too.
 """
 
 from __future__ import annotations
@@ -17,7 +23,7 @@ CLUBS: dict[str, dict] = {
     "Brentford": {"code": "BRE", "primary": "#E30613", "secondary": "#FFFFFF"},
     "Brighton": {"code": "BHA", "primary": "#0057B8", "secondary": "#FFCD00"},
     "Chelsea": {"code": "CHE", "primary": "#034694", "secondary": "#DBA111"},
-    "Coventry": {"code": "COV", "primary": "#78BFEA", "secondary": "#FFFFFF"},
+    "Coventry": {"code": "COV", "primary": "#059DD9", "secondary": "#FFFFFF"},
     "Crystal Palace": {"code": "CRY", "primary": "#1B458F", "secondary": "#C4122E"},
     "Everton": {"code": "EVE", "primary": "#003399", "secondary": "#FFFFFF"},
     "Fulham": {"code": "FUL", "primary": "#FFFFFF", "secondary": "#000000"},
@@ -33,7 +39,7 @@ CLUBS: dict[str, dict] = {
     "Tottenham": {"code": "TOT", "primary": "#132257", "secondary": "#FFFFFF"},
 }
 
-COLOURS_VERIFIED = False  # set True once every value is checked against the clubs' published colours
+COLOURS_VERIFIED = False  # True once all twenty are checked against a named source (17 of 20 so far)
 
 
 def club(team: str) -> dict:

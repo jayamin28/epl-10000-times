@@ -201,6 +201,43 @@ def universes_frame(meta: dict, res) -> pd.DataFrame:
     })
 
 
+_B36 = "0123456789abcdefghijklmnopqrstuvwxyz"
+
+
+def site_universes(df: pd.DataFrame, teams: list[str]) -> dict:
+    """One gameweek of universes, packed small for the page.
+
+    `place` holds one letter per club per universe (A = 1st ... T = 20th), clubs
+    in `teams` order, universes 1 to n in turn. `points` holds two base-36 digits
+    per club per universe in the same order. Universe n starts at (n - 1) * len(teams).
+    """
+    k = len(teams)
+    d = df.assign(_i=df["team"].map({t: i for i, t in enumerate(teams)})).sort_values(["universe", "_i"])
+    per = d.groupby("universe")["_i"].agg(["nunique", "size"]) if not d["_i"].isna().any() else None
+    if per is None or not ((per["nunique"] == k) & (per["size"] == k)).all():
+        raise ValueError("universe rows do not cover every club exactly once")
+    place = d["place"].to_numpy().astype(int)
+    pts = d["points"].to_numpy().astype(int)
+    if place.min() < 1 or place.max() > 26 or pts.min() < 0 or pts.max() >= 36 * 36:
+        raise ValueError("place or points out of range for packing")
+    first = df.iloc[0]
+    return {"season": str(first["season"]), "matchweek": int(first["matchweek"]),
+            "matches_played": int(first["matches_played"]), "run_at": str(first["run_at"]),
+            "n_sims": len(d) // k, "teams": list(teams),
+            "place": "".join(chr(64 + p) for p in place),
+            "points": "".join(_B36[p // 36] + _B36[p % 36] for p in pts)}
+
+
+def site_universe_index(site_dir: Path, season: str) -> dict:
+    """Which gameweeks have universes on the site, newest last."""
+    weeks = []
+    for f in sorted((Path(site_dir) / "universes" / season).glob("gw*.json")):
+        head = json.loads(f.read_text(encoding="utf-8"))
+        weeks.append({"matchweek": head["matchweek"], "matches_played": head["matches_played"],
+                      "file": f"universes/{season}/{f.name}"})
+    return {"season": season, "weeks": sorted(weeks, key=lambda w: w["matchweek"])}
+
+
 def write(path: Path, df: pd.DataFrame) -> None:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
