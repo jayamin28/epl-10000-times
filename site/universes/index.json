@@ -1,0 +1,10 @@
+{
+ "season": "2026-27",
+ "weeks": [
+  {
+   "matchweek": 10,
+   "matches_played": 100,
+   "file": "universes/2026-27/gw10.json"
+  }
+ ]
+}
