@@ -27,11 +27,12 @@ from .teams import canonical
 POINTS_KEY = ["season", "matches_played", "team", "points"]
 
 # Codes for clubs on file that are not in this season, so every club in the data has its own.
-# The usual broadcast abbreviations. clubs.py keeps the current twenty (and their colours) for the page.
+# Checked 18 Nov 2026 against the Premier League's data API (footballapi.pulselive.com, the `abbr`
+# field); the current twenty in clubs.py match it too. clubs.py keeps them (and colours) for the page.
 PAST_CODES = {
-    "Birmingham": "BIR", "Blackburn": "BLB", "Blackpool": "BPL", "Bolton": "BOL", "Burnley": "BUR",
+    "Birmingham": "BIR", "Blackburn": "BLB", "Blackpool": "BLP", "Bolton": "BOL", "Burnley": "BUR",
     "Cardiff": "CAR", "Huddersfield": "HUD", "Leicester": "LEI", "Luton": "LUT", "Middlesbrough": "MID",
-    "Norwich": "NOR", "QPR": "QPR", "Reading": "REA", "Sheffield United": "SHU", "Southampton": "SOU",
+    "Norwich": "NOR", "QPR": "QPR", "Reading": "RDG", "Sheffield United": "SHU", "Southampton": "SOU",
     "Stoke": "STK", "Swansea": "SWA", "Watford": "WAT", "West Brom": "WBA", "West Ham": "WHU",
     "Wigan": "WIG", "Wolves": "WOL",
 }
@@ -172,6 +173,32 @@ def gameweeks_frame(matches: list[Match], snapshots: pd.DataFrame | None, postpo
     df["snapshot_matches_played"] = df["snapshot_matches_played"].astype("Int64")
     df["snapshot_reconstructed"] = df["snapshot_reconstructed"].astype("boolean")
     return df
+
+
+def universes_path(out_dir: Path, season: str, matchweek: int) -> Path:
+    """One file per gameweek. A later run in the same gameweek overwrites it, so each gameweek keeps one set."""
+    return Path(out_dir) / "universes" / season / f"gw{matchweek:02d}.parquet"
+
+
+def universes_frame(meta: dict, res) -> pd.DataFrame:
+    """All simulated seasons of one run, one row per universe per club.
+
+    `universe` is the number the page uses (1 to n_sims). Numbers only mean the
+    same season within one gameweek: the next gameweek's run starts from new
+    results, so universe 4,817 there is a different season.
+    """
+    n, k = res.points.shape
+    return pd.DataFrame({
+        "season": meta["season"], "matchweek": meta["matchweek"], "matches_played": meta["matches_played"],
+        "run_at": meta["generated_at"],
+        "universe": np.repeat(np.arange(1, n + 1, dtype=np.int32), k),
+        "team": np.tile(np.array(res.teams, dtype=object), n),
+        "place": res.position.reshape(-1).astype(np.int8),
+        "points": res.points.reshape(-1).astype(np.int16),
+        "goal_diff": res.goal_diff.reshape(-1).astype(np.int16),
+        "goals_for": (res.goals_for.reshape(-1) if res.goals_for is not None
+                      else np.full(n * k, -1)).astype(np.int16),
+    })
 
 
 def write(path: Path, df: pd.DataFrame) -> None:

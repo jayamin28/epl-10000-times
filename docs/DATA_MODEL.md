@@ -91,6 +91,14 @@ Key: `team`.
 
 Key: `(season, gameweek)`.
 
+### `universes/<season>/gwNN.parquet`: every simulated season, one file per gameweek
+
+One row per universe per club: `universe` (1 to 10,000, the same number the page uses), `team`, `place`, `points`, `goal_diff`, `goals_for`, plus the run's `season`, `matchweek`, `matches_played` and `run_at`. Written by live runs from Gameweek 10 on (no earlier weeks). A later run in the same gameweek overwrites that gameweek's file, so each gameweek keeps exactly one set: the one after its last result. About 0.7 MB a gameweek.
+
+Universe numbers only mean the same season within one gameweek. The next gameweek's run starts from new results, so universe 4,817 there is a different season. Always show a universe with its gameweek.
+
+Key: `(season, matchweek, universe, team)`.
+
 The forecast log also carries `home_xg`, `away_xg`, `home_elo` and `away_elo` from 17 Nov 2026: the expected goals and the ratings behind each set of odds.
 
 ### Also written

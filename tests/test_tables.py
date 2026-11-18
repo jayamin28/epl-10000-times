@@ -160,3 +160,43 @@ def test_fill_points_skips_a_run_it_cannot_reproduce(tmp_path, built, data_dir, 
     assert run_week.fill_points(data_dir, out, current_dir=frozen_dir, log=logs.append) == []
     assert any("did not reproduce" in line for line in logs)
     assert 40 not in set(pd.read_parquet(out / "points_dist.parquet").matches_played)
+
+
+def test_universes_one_file_per_gameweek_from_live_runs_only(built):
+    files = sorted((built["out"] / "universes").rglob("*.parquet"))
+    assert [f.relative_to(built["out"]).as_posix() for f in files] == ["universes/2026-27/gw10.parquet"]
+    assert tables.universes_path(built["out"], SEASON, 9).name == "gw09.parquet"
+
+
+def test_universes_match_the_saved_seasons_and_the_page(built):
+    import json
+    u = pd.read_parquet(built["out"] / "universes" / SEASON / "gw10.parquet")
+    assert len(u) == SIMS * 20 and set(u.universe) == set(range(1, SIMS + 1))
+    assert (u.groupby("universe").place.apply(lambda p: sorted(p) == list(range(1, 21)))).all()
+    assert (u.matchweek == 10).all() and (u.matches_played == 100).all()
+    s = pd.read_parquet(built["out"] / "seasons_latest.parquet")
+    for team in ("Arsenal", "Liverpool", "Coventry"):
+        mine = u[u.team == team].sort_values("universe")
+        assert (mine.place.to_numpy() == s[f"pos_{clubs.code(team)}"].to_numpy()).all()
+        assert (mine.points.to_numpy() == s[f"pts_{clubs.code(team)}"].to_numpy()).all()
+    feed = json.loads((built["base"] / "site" / "feed.json").read_text())
+    champs = u[u.place == 1].sort_values("universe").team.tolist()
+    page = [feed["universes"]["teams"][ord(c) - 65] for c in feed["universes"]["champion"]]
+    assert champs == page  # universe N here is season N on the page
+
+
+def test_a_rerun_in_the_same_gameweek_overwrites_it(built, data_dir, frozen_dir):
+    import shutil
+    base = built["base"].parent / "rerun_same_gw"
+    shutil.copytree(built["base"], base)
+    later = datetime(2026, 11, 12, 7, 0, tzinfo=timezone.utc)
+    run_week.run(data_dir, base / "outputs", base / "site", current_dir=frozen_dir, do_fetch=False, force=True,
+                 now=later, n_sims=SIMS, **QUIET)
+    files = sorted((base / "outputs" / "universes").rglob("*.parquet"))
+    assert len(files) == 1
+    u = pd.read_parquet(files[0])
+    assert len(u) == SIMS * 20 and set(u.run_at) == {"2026-11-12T07:00:00Z"}
+
+
+def test_past_club_codes_follow_the_league():
+    assert tables.code("Blackpool") == "BLP" and tables.code("Reading") == "RDG" and tables.code("Liverpool") == "LIV"
