@@ -284,9 +284,10 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
   </section>
 
   <footer>
-    <p>Data: <a href="https://github.com/openfootball/football.json">openfootball</a> (public domain), the official Fantasy Premier League fixtures feed, and <a href="https://github.com/olbauday/FPL-Elo-Insights">FPL-Elo-Insights</a>. Each result is accepted only when the sources agree. Inspired by <a href="https://www.youtube.com/watch?v=JSAjJsbysVk">Bink Sport's 10,000 simulations video</a>.</p>
+    <p>Data: <a href="https://github.com/openfootball/football.json">openfootball</a> (public domain), the official Fantasy Premier League fixtures feed, and <a href="https://github.com/olbauday/FPL-Elo-Insights">FPL-Elo-Insights</a>. Each result is checked against the other sources, and where they disagree the majority wins. Inspired by <a href="https://www.youtube.com/watch?v=JSAjJsbysVk">Bink Sport's 10,000 simulations video</a>.</p>
     <p>Club discs use approximate club colours and three-letter codes. They are not official crests. This page is not affiliated with the Premier League or any club.</p>
     <p>Code, data and tests: <a href="https://github.com/jayamin28/epl-10000-times">github.com/jayamin28/epl-10000-times</a>.</p>
+    <p>Visits are counted with <a href="https://www.goatcounter.com/">GoatCounter</a>: no cookies, no personal data, nothing to sign in to.</p>
   </footer>
   </div>
 </main>
@@ -371,7 +372,7 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
       var o = document.createElement("option"); o.value = t; o.textContent = t; sel.appendChild(o);
     });
     sel.value = byTeam[saved] ? saved : "Liverpool";
-    sel.addEventListener("change", function () { try { localStorage.setItem("epl10k-club", sel.value); } catch (e) {} renderMatrix(); renderClub(); openUniverse(Number($("uni-n").value)); });
+    sel.addEventListener("change", function () { try { localStorage.setItem("epl10k-club", sel.value); } catch (e) {} renderMatrix(); renderClub(); openUniverse(Number($("uni-n").value)); track("club-" + ((byTeam[sel.value] || {}).code || "other"), "Picked " + sel.value); });
   }
 
   function renderClub() {
@@ -533,9 +534,9 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
     }
     sel.value = feed.meta.matchweek;
     if (!wired) {
-      $("uni-form").addEventListener("submit", function (e) { e.preventDefault(); openUniverse(Number(input.value)); });
-      $("uni-rand").addEventListener("click", function () { input.value = 1 + Math.floor(Math.random() * Number(input.max)); openUniverse(Number(input.value)); });
-      sel.addEventListener("change", function () { openUniverse(Math.min(Number(input.value), Number(input.max))); });
+      $("uni-form").addEventListener("submit", function (e) { e.preventDefault(); openUniverse(Number(input.value)); track("universe-open", "Opened a season by number"); });
+      $("uni-rand").addEventListener("click", function () { input.value = 1 + Math.floor(Math.random() * Number(input.max)); openUniverse(Number(input.value)); track("universe-surprise", "Surprise me"); });
+      sel.addEventListener("change", function () { openUniverse(Math.min(Number(input.value), Number(input.max))); track("universe-gameweek", "Changed the universe gameweek"); });
       getJson("universes/index.json").then(function (j) { uni.index = j; }).catch(function () { uni.index = null; })
         .then(function () { uni.indexLoaded = true; uni.weeks = {}; openUniverse(Math.min(Number(input.value), Number(input.max))); });
     }
@@ -631,7 +632,7 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
         o.textContent = "After Gameweek " + w.matchweek + (w.matchweek === latestMw ? " (latest)" : "") + ", " + date(w.data_through);
         sel.appendChild(o);
       });
-      sel.addEventListener("change", function () { load(Number(sel.value) === latestMw ? "feed.json" : "snapshots/mw" + ("0" + sel.value).slice(-2) + ".json"); });
+      sel.addEventListener("change", function () { load(Number(sel.value) === latestMw ? "feed.json" : "snapshots/mw" + ("0" + sel.value).slice(-2) + ".json"); track("past-week", "Looked at an earlier gameweek"); });
       $("past-back").addEventListener("click", function () { sel.value = latestMw; load("feed.json"); });
     }
     var past = feed.meta.matchweek !== latestMw;
@@ -647,6 +648,10 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
     $("content").classList.remove("hidden");
   }
 
+  function track(name, title) {
+    try { if (window.goatcounter && window.goatcounter.count && !window.goatcounter.no_onload) window.goatcounter.count({ path: name, title: title, event: true }); } catch (e) {}
+  }
+
   function getJson(url) { return fetch(url, { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }); }
 
   function load(url) {
@@ -660,5 +665,10 @@ footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: co
   getJson("history.json").then(function (h) { hist = h; }).catch(function () { hist = null; }).then(function () { return load("feed.json"); });
 })();
 </script>
+<script>
+  // Visit counting (GoatCounter, no cookies). Only on the live page, so tests and local copies never count.
+  if (window.location.host !== "jayamin28.github.io") window.goatcounter = { no_onload: true };
+</script>
+<script data-goatcounter="https://jayportfolio.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>

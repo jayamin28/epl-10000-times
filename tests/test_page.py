@@ -144,3 +144,19 @@ def test_universe_picker_shows_where_your_club_finished(browser, site_with_unive
         assert not errors, errors
     finally:
         httpd.shutdown()
+
+
+def test_visit_counter_is_wired_but_silent_off_the_live_site(server, browser):
+    page, errors = open_page(browser, server, 1280)
+    page.wait_for_selector("#uni-gw option", state="attached")
+    src = page.get_attribute("script[data-goatcounter]", "src")
+    endpoint = page.get_attribute("script[data-goatcounter]", "data-goatcounter")
+    assert src == "//gc.zgo.at/count.js" and endpoint == "https://jayportfolio.goatcounter.com/count"
+    assert page.evaluate("window.goatcounter && window.goatcounter.no_onload") is True  # not the live host
+    sent = []
+    page.on("request", lambda r: sent.append(r.url) if "goatcounter" in r.url or "zgo.at/count" in r.url and "count.js" not in r.url else None)
+    page.click("#uni-rand")
+    page.select_option("#pick", "Arsenal")
+    page.wait_for_timeout(300)
+    assert not sent and not errors, (sent, errors)
+    assert "no cookies" in page.text_content("footer")
