@@ -4,8 +4,6 @@ After every matchweek, this project plays out the rest of the Premier League sea
 
 **Live page:** https://jayamin28.github.io/epl-10000-times/
 
-Inspired by [Bink Sport's video](https://www.youtube.com/watch?v=JSAjJsbysVk), which did this for the Champions League.
-
 ## How it works
 
 1. **Rate every club.** An Elo rating, updated after every league match since 2010.
