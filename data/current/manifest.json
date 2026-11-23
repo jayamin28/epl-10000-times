@@ -1,7 +1,7 @@
 {
   "season": "2026-27",
-  "fetched_at": "2026-11-22T15:07:58Z",
-  "fetched_on": "2026-11-22",
+  "fetched_at": "2026-11-23T19:03:38Z",
+  "fetched_on": "2026-11-23",
   "sources": {
     "fpl": {
       "ok": true,
@@ -12,11 +12,11 @@
           "ok": true
         }
       ],
-      "sha": "7cd6adf28d116358"
+      "sha": "e9e67844cbd3d4cc"
     },
     "mirror": {
       "ok": true,
-      "sha": "7b99bde79bf8b415",
+      "sha": "dafa6dc0146eb000",
       "gameweek_files": 38
     },
     "openfootball": {
