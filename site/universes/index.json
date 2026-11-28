@@ -10,6 +10,11 @@
    "matchweek": 11,
    "matches_played": 110,
    "file": "universes/2026-27/gw11.json"
+  },
+  {
+   "matchweek": 12,
+   "matches_played": 111,
+   "file": "universes/2026-27/gw12.json"
   }
  ]
 }
